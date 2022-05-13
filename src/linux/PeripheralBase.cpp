@@ -151,11 +151,8 @@ void PeripheralBase::write_request(BluetoothUUID const& service, BluetoothUUID c
 
 void PeripheralBase::write_request(BluetoothUUID const& service, BluetoothUUID const& characteristic,
                                    const ByteArray data, const size_t size) {
-    // TODO: implement
-    // // TODO: Check if the characteristic is writable.
-    // // TODO: SimpleBluez::Characteristic::write_request() should also take ByteStrArray by const reference (but that's
-    // // another library)
-    // _get_characteristic(service, characteristic)->write_request(data);
+    // TODO: Check if the characteristic is writable.
+    _get_characteristic(service, characteristic)->write_request(data, size);
 }
 
 void PeripheralBase::write_command(BluetoothUUID const& service, BluetoothUUID const& characteristic,
@@ -195,21 +192,27 @@ void PeripheralBase::notify(BluetoothUUID const& service, BluetoothUUID const& c
 void PeripheralBase::notify(BluetoothUUID const& service, BluetoothUUID const& characteristic,
                             std::function<void(ByteArray payload, const size_t size)> callback) {
     // TODO: implement
-    // // Check if the user is attempting to notify the battery service/characteristic and if so,
-    // //  emulate the battery service through the Battery1 interface if it's not available.
-    // if (service == BATTERY_SERVICE_UUID && characteristic == BATTERY_CHARACTERISTIC_UUID &&
-    //     device_->has_battery_interface()) {
-    //     // If this point is reached, the battery service needs to be emulated.
-    //     device_->set_on_battery_percentage_changed(
-    //         [callback](uint8_t new_value) { callback(ByteStrArray(reinterpret_cast<char*>(&new_value), 1)); });
-    //     return;
-    // }
+    // Check if the user is attempting to notify the battery service/characteristic and if so,
+    //  emulate the battery service through the Battery1 interface if it's not available.
+    if (service == BATTERY_SERVICE_UUID && characteristic == BATTERY_CHARACTERISTIC_UUID &&
+        device_->has_battery_interface()) {
+        // If this point is reached, the battery service needs to be emulated.
+        device_->set_on_battery_percentage_changed(
+            [callback](uint8_t new_value) { 
+                uint8_t bytes[] = {new_value};
+                callback(bytes, 1); 
+            });
+        return;
+    }
 
-    // // Otherwise, attempt to read the characteristic using default mechanisms
-    // // TODO: What to do if the characteristic is already being notified?
-    // // TODO: Check if the property can be notified.
+    // ! Need to solve the callback issue
+    // Otherwise, attempt to read the characteristic using default mechanisms
+    // TODO: What to do if the characteristic is already being notified?
+    // TODO: Check if the property can be notified.
     // auto characteristic_object = _get_characteristic(service, characteristic);
-    // characteristic_object->set_on_value_changed([callback](SimpleBluez::ByteStrArray new_value) { callback(new_value); });
+    // characteristic_object->set_on_value_changed([callback](SimpleBluez::ByteArray new_value, const size_t size) { 
+        // callback(new_value, size); 
+    // });
     // characteristic_object->start_notify();
 }
 
