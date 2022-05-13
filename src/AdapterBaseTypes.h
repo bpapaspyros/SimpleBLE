@@ -15,7 +15,7 @@ struct advertising_data_t {
 
     // TODO: Considering that per advertising report only one manufacturer
     // identifier is supported, maybe it is not necessary to use a map.
-    std::map<uint16_t, SimpleBLE::ByteArray> manufacturer_data;
+    std::map<uint16_t, SimpleBLE::ByteStrArray> manufacturer_data;
 };
 
 }  // namespace SimpleBLE

@@ -23,8 +23,8 @@ uint64_t _str_to_mac_address(std::string mac_address);
 winrt::guid uuid_to_guid(const std::string& uuid);
 std::string guid_to_uuid(const winrt::guid& guid);
 
-ByteArray ibuffer_to_bytearray(const IBuffer& buffer);
-IBuffer bytearray_to_ibuffer(const ByteArray& array);
+ByteStrArray ibuffer_to_bytearray(const IBuffer& buffer);
+IBuffer bytearray_to_ibuffer(const ByteStrArray& array);
 
 template <typename async_t>
 static auto async_get(async_t const& async) {

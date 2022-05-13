@@ -19,15 +19,15 @@
 - (bool)isConnected;
 - (std::vector<SimpleBLE::BluetoothService>)getServices;
 
-- (SimpleBLE::ByteArray)read:(NSString*)service_uuid characteristic_uuid:(NSString*)characteristic_uuid;
+- (SimpleBLE::ByteStrArray)read:(NSString*)service_uuid characteristic_uuid:(NSString*)characteristic_uuid;
 - (void)writeRequest:(NSString*)service_uuid characteristic_uuid:(NSString*)characteristic_uuid payload:(NSData*)payload;
 - (void)writeCommand:(NSString*)service_uuid characteristic_uuid:(NSString*)characteristic_uuid payload:(NSData*)payload;
 - (void)notify:(NSString*)service_uuid
     characteristic_uuid:(NSString*)characteristic_uuid
-               callback:(std::function<void(SimpleBLE::ByteArray)>)callback;
+               callback:(std::function<void(SimpleBLE::ByteStrArray)>)callback;
 - (void)indicate:(NSString*)service_uuid
     characteristic_uuid:(NSString*)characteristic_uuid
-               callback:(std::function<void(SimpleBLE::ByteArray)>)callback;
+               callback:(std::function<void(SimpleBLE::ByteStrArray)>)callback;
 - (void)unsubscribe:(NSString*)service_uuid characteristic_uuid:(NSString*)characteristic_uuid;
 
 - (void)delegateDidConnect;

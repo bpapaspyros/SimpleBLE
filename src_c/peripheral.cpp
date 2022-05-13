@@ -4,9 +4,9 @@
 #include "PeripheralBase.h"
 #include "PeripheralBuilder.h"
 
+#include <climits>
 #include <cstring>
 #include <map>
-#include <climits>
 
 void simpleble_peripheral_release_handle(simpleble_peripheral_t handle) {
     if (handle == nullptr) {
@@ -192,7 +192,7 @@ simpleble_err_t simpleble_peripheral_manufacturer_data_get(simpleble_peripheral_
     }
 
     // Build an iterator and advance to the expected element
-    std::map<uint16_t, SimpleBLE::ByteArray>::iterator it = peripheral_manufacturer_data.value().begin();
+    std::map<uint16_t, SimpleBLE::ByteStrArray>::iterator it = peripheral_manufacturer_data.value().begin();
     for (size_t i = 0; i < index; i++) {
         it++;
     }
@@ -217,8 +217,8 @@ simpleble_err_t simpleble_peripheral_read(simpleble_peripheral_t handle, simpleb
 
     // Perform the read operation
     SimpleBLE::Safe::Peripheral* peripheral = (SimpleBLE::Safe::Peripheral*)handle;
-    std::optional<SimpleBLE::ByteArray> read_data = peripheral->read(SimpleBLE::BluetoothUUID(service.value),
-                                                                     SimpleBLE::BluetoothUUID(characteristic.value));
+    std::optional<SimpleBLE::ByteStrArray> read_data = peripheral->read(SimpleBLE::BluetoothUUID(service.value),
+                                                                        SimpleBLE::BluetoothUUID(characteristic.value));
 
     // Early return if the operation failed
     if (!read_data.has_value()) {
@@ -243,7 +243,7 @@ simpleble_err_t simpleble_peripheral_write_request(simpleble_peripheral_t handle
 
     bool success = peripheral->write_request(SimpleBLE::BluetoothUUID(service.value),
                                              SimpleBLE::BluetoothUUID(characteristic.value),
-                                             SimpleBLE::ByteArray((const char*)data, data_length));
+                                             SimpleBLE::ByteStrArray((const char*)data, data_length));
 
     return success ? SIMPLEBLE_SUCCESS : SIMPLEBLE_FAILURE;
 }
@@ -259,7 +259,7 @@ simpleble_err_t simpleble_peripheral_write_command(simpleble_peripheral_t handle
 
     bool success = peripheral->write_command(SimpleBLE::BluetoothUUID(service.value),
                                              SimpleBLE::BluetoothUUID(characteristic.value),
-                                             SimpleBLE::ByteArray((const char*)data, data_length));
+                                             SimpleBLE::ByteStrArray((const char*)data, data_length));
 
     return success ? SIMPLEBLE_SUCCESS : SIMPLEBLE_FAILURE;
 }
@@ -273,11 +273,11 @@ simpleble_err_t simpleble_peripheral_notify(
 
     SimpleBLE::Safe::Peripheral* peripheral = (SimpleBLE::Safe::Peripheral*)handle;
 
-    bool success = peripheral->notify(SimpleBLE::BluetoothUUID(service.value),
-                                      SimpleBLE::BluetoothUUID(characteristic.value), [=](SimpleBLE::ByteArray data) {
-                                          callback(service, characteristic, (const uint8_t*)data.data(), data.size(),
-                                                   userdata);
-                                      });
+    bool success = peripheral->notify(
+        SimpleBLE::BluetoothUUID(service.value), SimpleBLE::BluetoothUUID(characteristic.value),
+        [=](SimpleBLE::ByteStrArray data) {
+            callback(service, characteristic, (const uint8_t*)data.data(), data.size(), userdata);
+        });
 
     return success ? SIMPLEBLE_SUCCESS : SIMPLEBLE_FAILURE;
 }
@@ -291,11 +291,11 @@ simpleble_err_t simpleble_peripheral_indicate(
 
     SimpleBLE::Safe::Peripheral* peripheral = (SimpleBLE::Safe::Peripheral*)handle;
 
-    bool success = peripheral->indicate(SimpleBLE::BluetoothUUID(service.value),
-                                        SimpleBLE::BluetoothUUID(characteristic.value), [=](SimpleBLE::ByteArray data) {
-                                            callback(service, characteristic, (const uint8_t*)data.data(), data.size(),
-                                                     userdata);
-                                        });
+    bool success = peripheral->indicate(
+        SimpleBLE::BluetoothUUID(service.value), SimpleBLE::BluetoothUUID(characteristic.value),
+        [=](SimpleBLE::ByteStrArray data) {
+            callback(service, characteristic, (const uint8_t*)data.data(), data.size(), userdata);
+        });
 
     return success ? SIMPLEBLE_SUCCESS : SIMPLEBLE_FAILURE;
 }

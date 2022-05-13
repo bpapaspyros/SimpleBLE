@@ -4,7 +4,7 @@
 typedef struct {
     BOOL readPending;
     BOOL writePending;
-    std::function<void(SimpleBLE::ByteArray)> valueChangedCallback;
+    std::function<void(SimpleBLE::ByteStrArray)> valueChangedCallback;
 } characteristic_extras_t;
 
 @interface PeripheralBaseMacOS () {
@@ -162,14 +162,14 @@ typedef struct {
     return services;
 }
 
-- (SimpleBLE::ByteArray)read:(NSString*)service_uuid characteristic_uuid:(NSString*)characteristic_uuid {
+- (SimpleBLE::ByteStrArray)read:(NSString*)service_uuid characteristic_uuid:(NSString*)characteristic_uuid {
     std::pair<CBService*, CBCharacteristic*> serviceAndCharacteristic = [self findServiceAndCharacteristic:service_uuid
                                                                                        characteristic_uuid:characteristic_uuid];
 
     if (serviceAndCharacteristic.first == nil || serviceAndCharacteristic.second == nil) {
         // TODO: Raise an exception.
         NSLog(@"Could not find service and characteristic.");
-        return SimpleBLE::ByteArray();
+        return SimpleBLE::ByteStrArray();
     }
 
     CBCharacteristic* characteristic = serviceAndCharacteristic.second;
@@ -192,10 +192,10 @@ typedef struct {
     if (readPending) {
         // TODO: Raise an exception.
         NSLog(@"Characteristic %@ could not be read", characteristic.UUID);
-        return SimpleBLE::ByteArray();
+        return SimpleBLE::ByteStrArray();
     }
 
-    return SimpleBLE::ByteArray((const char*)characteristic.value.bytes, characteristic.value.length);
+    return SimpleBLE::ByteStrArray((const char*)characteristic.value.bytes, characteristic.value.length);
 }
 
 - (void)writeRequest:(NSString*)service_uuid characteristic_uuid:(NSString*)characteristic_uuid payload:(NSData*)payload {
@@ -265,7 +265,7 @@ typedef struct {
 
 - (void)notify:(NSString*)service_uuid
     characteristic_uuid:(NSString*)characteristic_uuid
-               callback:(std::function<void(SimpleBLE::ByteArray)>)callback {
+               callback:(std::function<void(SimpleBLE::ByteStrArray)>)callback {
     std::pair<CBService*, CBCharacteristic*> serviceAndCharacteristic = [self findServiceAndCharacteristic:service_uuid
                                                                                        characteristic_uuid:characteristic_uuid];
 
@@ -295,7 +295,7 @@ typedef struct {
 
 - (void)indicate:(NSString*)service_uuid
     characteristic_uuid:(NSString*)characteristic_uuid
-               callback:(std::function<void(SimpleBLE::ByteArray)>)callback {
+               callback:(std::function<void(SimpleBLE::ByteStrArray)>)callback {
     [self notify:service_uuid characteristic_uuid:characteristic_uuid callback:callback];
 }
 
@@ -414,7 +414,7 @@ typedef struct {
 
         // Check if the characteristic has a callback and call it
         if (characteristic_extras_[uuidToSimpleBLE(characteristic.UUID)].valueChangedCallback != nil) {
-            SimpleBLE::ByteArray received_data((const char*)characteristic.value.bytes, characteristic.value.length);
+            SimpleBLE::ByteStrArray received_data((const char*)characteristic.value.bytes, characteristic.value.length);
             characteristic_extras_[uuidToSimpleBLE(characteristic.UUID)].valueChangedCallback(received_data);
         }
     }
