@@ -4,8 +4,8 @@
 typedef struct {
     BOOL readPending;
     BOOL writePending;
-    std::function<void(SimpleBLE::ByteStrArray)> valueChangedCallback = {};
-    std::function<void(SimpleBLE::ByteArray, const int size)> valueChangedCallbackBytes = {};
+    std::function<void(SimpleBLE::ByteStrArray)> valueChangedCallback;
+    std::function<void(SimpleBLE::ByteArray)> valueChangedCallbackBytes;
 } characteristic_extras_t;
 
 @interface PeripheralBaseMacOS () {
@@ -296,7 +296,7 @@ typedef struct {
 
 - (void)notifyBytes:(NSString*)service_uuid
     characteristic_uuid:(NSString*)characteristic_uuid
-               callback:(std::function<void(SimpleBLE::ByteArray, const int size)>)callback {
+               callback:(std::function<void(SimpleBLE::ByteArray)>)callback {
     std::pair<CBService*, CBCharacteristic*> serviceAndCharacteristic = [self findServiceAndCharacteristic:service_uuid
                                                                                        characteristic_uuid:characteristic_uuid];
 
@@ -328,6 +328,12 @@ typedef struct {
     characteristic_uuid:(NSString*)characteristic_uuid
                callback:(std::function<void(SimpleBLE::ByteStrArray)>)callback {
     [self notify:service_uuid characteristic_uuid:characteristic_uuid callback:callback];
+}
+
+- (void)indicateBytes:(NSString*)service_uuid
+    characteristic_uuid:(NSString*)characteristic_uuid
+               callback:(std::function<void(SimpleBLE::ByteArray)>)callback {
+    [self notifyBytes:service_uuid characteristic_uuid:characteristic_uuid callback:callback];
 }
 
 - (void)unsubscribe:(NSString*)service_uuid characteristic_uuid:(NSString*)characteristic_uuid {
@@ -451,10 +457,9 @@ typedef struct {
         }
 
         if (characteristic_extras_[uuidToSimpleBLE(characteristic.UUID)].valueChangedCallbackBytes != nil) {
-            SimpleBLE::ByteArray received_data = (SimpleBLE::ByteArray)characteristic.value.bytes;
-            // SimpleBLE::ByteStrArray received_data((const char*)characteristic.value.bytes, characteristic.value.length);
-            characteristic_extras_[uuidToSimpleBLE(characteristic.UUID)].valueChangedCallbackBytes(
-                received_data, characteristic.value.length * sizeof(uint8_t));
+            SimpleBLE::ByteArray received_data(characteristic.value.length);
+            std::memcpy(received_data.data(), characteristic.value.bytes, characteristic.value.length);
+            characteristic_extras_[uuidToSimpleBLE(characteristic.UUID)].valueChangedCallbackBytes(received_data);
         }
     }
 }
