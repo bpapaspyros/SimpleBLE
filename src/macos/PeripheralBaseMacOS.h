@@ -25,6 +25,9 @@
 - (void)notify:(NSString*)service_uuid
     characteristic_uuid:(NSString*)characteristic_uuid
                callback:(std::function<void(SimpleBLE::ByteStrArray)>)callback;
+- (void)notifyBytes:(NSString*)service_uuid
+    characteristic_uuid:(NSString*)characteristic_uuid
+               callback:(std::function<void(SimpleBLE::ByteArray, const int size)>)callback;
 - (void)indicate:(NSString*)service_uuid
     characteristic_uuid:(NSString*)characteristic_uuid
                callback:(std::function<void(SimpleBLE::ByteStrArray)>)callback;

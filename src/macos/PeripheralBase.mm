@@ -142,6 +142,15 @@ void PeripheralBase::notify(BluetoothUUID const& service, BluetoothUUID const& c
     [internal notify:service_uuid characteristic_uuid:characteristic_uuid callback:callback];
 }
 
+void PeripheralBase::notify(BluetoothUUID const& service, BluetoothUUID const& characteristic,
+                            std::function<void(ByteArray payload, const int size)> callback) {
+    PeripheralBaseMacOS* internal = (__bridge PeripheralBaseMacOS*)opaque_internal_;
+
+    NSString* service_uuid = [NSString stringWithCString:service.c_str() encoding:NSString.defaultCStringEncoding];
+    NSString* characteristic_uuid = [NSString stringWithCString:characteristic.c_str() encoding:NSString.defaultCStringEncoding];
+    [internal notifyBytes:service_uuid characteristic_uuid:characteristic_uuid callback:callback];
+}
+
 void PeripheralBase::indicate(BluetoothUUID const& service, BluetoothUUID const& characteristic,
                               std::function<void(ByteStrArray payload)> callback) {
     PeripheralBaseMacOS* internal = (__bridge PeripheralBaseMacOS*)opaque_internal_;

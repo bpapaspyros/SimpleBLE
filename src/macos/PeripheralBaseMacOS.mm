@@ -4,7 +4,8 @@
 typedef struct {
     BOOL readPending;
     BOOL writePending;
-    std::function<void(SimpleBLE::ByteStrArray)> valueChangedCallback;
+    std::function<void(SimpleBLE::ByteStrArray)> valueChangedCallback = {};
+    std::function<void(SimpleBLE::ByteArray, const int size)> valueChangedCallbackBytes = {};
 } characteristic_extras_t;
 
 @interface PeripheralBaseMacOS () {
@@ -293,6 +294,36 @@ typedef struct {
     }
 }
 
+- (void)notifyBytes:(NSString*)service_uuid
+    characteristic_uuid:(NSString*)characteristic_uuid
+               callback:(std::function<void(SimpleBLE::ByteArray, const int size)>)callback {
+    std::pair<CBService*, CBCharacteristic*> serviceAndCharacteristic = [self findServiceAndCharacteristic:service_uuid
+                                                                                       characteristic_uuid:characteristic_uuid];
+
+    if (serviceAndCharacteristic.first == nil || serviceAndCharacteristic.second == nil) {
+        // TODO: Raise an exception.
+        NSLog(@"Could not find service and characteristic.");
+    }
+
+    CBCharacteristic* characteristic = serviceAndCharacteristic.second;
+
+    @synchronized(self) {
+        characteristic_extras_[uuidToSimpleBLE(characteristic.UUID)].valueChangedCallbackBytes = callback;
+        [self.peripheral setNotifyValue:YES forCharacteristic:characteristic];
+    }
+
+    // Wait for the update to complete for up to 1 second.
+    NSDate* endDate = [NSDate dateWithTimeInterval:1.0 sinceDate:NSDate.now];
+    while (!characteristic.isNotifying && [NSDate.now compare:endDate] == NSOrderedAscending) {
+        [NSThread sleepForTimeInterval:0.01];
+    }
+
+    if (!characteristic.isNotifying) {
+        // TODO: Raise an exception.
+        NSLog(@"Could not enable notifications for characteristic %@", characteristic.UUID);
+    }
+}
+
 - (void)indicate:(NSString*)service_uuid
     characteristic_uuid:(NSString*)characteristic_uuid
                callback:(std::function<void(SimpleBLE::ByteStrArray)>)callback {
@@ -325,6 +356,7 @@ typedef struct {
             // Only delete the callback if the characteristic is no longer notifying, to
             // prevent triggering a segfault.
             characteristic_extras_[uuidToSimpleBLE(characteristic.UUID)].valueChangedCallback = nil;
+            characteristic_extras_[uuidToSimpleBLE(characteristic.UUID)].valueChangedCallbackBytes = nil;
         }
     }
 }
@@ -416,6 +448,13 @@ typedef struct {
         if (characteristic_extras_[uuidToSimpleBLE(characteristic.UUID)].valueChangedCallback != nil) {
             SimpleBLE::ByteStrArray received_data((const char*)characteristic.value.bytes, characteristic.value.length);
             characteristic_extras_[uuidToSimpleBLE(characteristic.UUID)].valueChangedCallback(received_data);
+        }
+
+        if (characteristic_extras_[uuidToSimpleBLE(characteristic.UUID)].valueChangedCallbackBytes != nil) {
+            SimpleBLE::ByteArray received_data = (SimpleBLE::ByteArray)characteristic.value.bytes;
+            // SimpleBLE::ByteStrArray received_data((const char*)characteristic.value.bytes, characteristic.value.length);
+            characteristic_extras_[uuidToSimpleBLE(characteristic.UUID)].valueChangedCallbackBytes(
+                received_data, characteristic.value.length * sizeof(uint8_t));
         }
     }
 }

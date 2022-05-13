@@ -39,6 +39,8 @@ class PeripheralBase {
                        const int size);
     void notify(BluetoothUUID const& service, BluetoothUUID const& characteristic,
                 std::function<void(ByteStrArray payload)> callback);
+    void notify(BluetoothUUID const& service, BluetoothUUID const& characteristic,
+                std::function<void(ByteArray payload, int size)> callback);
     void indicate(BluetoothUUID const& service, BluetoothUUID const& characteristic,
                   std::function<void(ByteStrArray payload)> callback);
     void unsubscribe(BluetoothUUID const& service, BluetoothUUID const& characteristic);
