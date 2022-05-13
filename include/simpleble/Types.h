@@ -14,7 +14,7 @@ using BluetoothUUID = std::string;
 // IDEA: Extend ByteStrArray to be constructed by a vector of bytes
 // and pointers to uint8_t.
 using ByteStrArray = std::string;
-using ByteArray = uint8_t*;
+using ByteArray = std::vector<uint8_t>;
 
 struct BluetoothService {
     BluetoothUUID uuid;

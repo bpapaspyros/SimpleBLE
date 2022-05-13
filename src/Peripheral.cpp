@@ -90,11 +90,11 @@ void Peripheral::write_request(BluetoothUUID const& service, BluetoothUUID const
 }
 
 void Peripheral::write_request(BluetoothUUID const& service, BluetoothUUID const& characteristic,
-                               const ByteArray data, const int size) {
+                               ByteArray const& data) {
     if (!initialized()) throw Exception::NotInitialized();
     if (!is_connected()) throw Exception::OperationFailed();
 
-    internal_->write_request(service, characteristic, data, size);
+    internal_->write_request(service, characteristic, data);
 }
 
 void Peripheral::write_command(BluetoothUUID const& service, BluetoothUUID const& characteristic,
@@ -106,11 +106,11 @@ void Peripheral::write_command(BluetoothUUID const& service, BluetoothUUID const
 }
 
 void Peripheral::write_command(BluetoothUUID const& service, BluetoothUUID const& characteristic,
-                               const ByteArray data, const int size) {
+                               ByteArray const& data) {
     if (!initialized()) throw Exception::NotInitialized();
     if (!is_connected()) throw Exception::OperationFailed();
 
-    internal_->write_command(service, characteristic, data, size);
+    internal_->write_command(service, characteristic, data);
 }
 
 void Peripheral::notify(BluetoothUUID const& service, BluetoothUUID const& characteristic,
@@ -122,7 +122,7 @@ void Peripheral::notify(BluetoothUUID const& service, BluetoothUUID const& chara
 }
 
 void Peripheral::notify(BluetoothUUID const& service, BluetoothUUID const& characteristic,
-                        std::function<void(ByteArray payload, const int size)> callback) {
+                        std::function<void(ByteArray payload)> callback) {
     if (!initialized()) throw Exception::NotInitialized();
     if (!is_connected()) throw Exception::OperationFailed();
 

@@ -150,9 +150,9 @@ void PeripheralBase::write_request(BluetoothUUID const& service, BluetoothUUID c
 }
 
 void PeripheralBase::write_request(BluetoothUUID const& service, BluetoothUUID const& characteristic,
-                                   const ByteArray data, const size_t size) {
+                                   ByteArray const& data) {
     // TODO: Check if the characteristic is writable.
-    _get_characteristic(service, characteristic)->write_request(data, size);
+    _get_characteristic(service, characteristic)->write_request(data);
 }
 
 void PeripheralBase::write_command(BluetoothUUID const& service, BluetoothUUID const& characteristic,
@@ -164,9 +164,9 @@ void PeripheralBase::write_command(BluetoothUUID const& service, BluetoothUUID c
 }
 
 void PeripheralBase::write_command(BluetoothUUID const& service, BluetoothUUID const& characteristic,
-                                   const ByteArray data, const size_t size) {
+                                   ByteArray const& data) {
     // TODO: Check if the characteristic is writable.
-    _get_characteristic(service, characteristic)->write_command(data, size);
+    _get_characteristic(service, characteristic)->write_command(data);
 }
 
 void PeripheralBase::notify(BluetoothUUID const& service, BluetoothUUID const& characteristic,
@@ -190,7 +190,7 @@ void PeripheralBase::notify(BluetoothUUID const& service, BluetoothUUID const& c
 }
 
 void PeripheralBase::notify(BluetoothUUID const& service, BluetoothUUID const& characteristic,
-                            std::function<void(ByteArray payload, const size_t size)> callback) {
+                            std::function<void(ByteArray payload)> callback) {
     // TODO: implement
     // Check if the user is attempting to notify the battery service/characteristic and if so,
     //  emulate the battery service through the Battery1 interface if it's not available.
@@ -199,8 +199,8 @@ void PeripheralBase::notify(BluetoothUUID const& service, BluetoothUUID const& c
         // If this point is reached, the battery service needs to be emulated.
         device_->set_on_battery_percentage_changed(
             [callback](uint8_t new_value) { 
-                uint8_t bytes[] = {new_value};
-                callback(bytes, 1); 
+                // uint8_t bytes[] = {new_value};
+                // callback(bytes, 1); 
             });
         return;
     }
@@ -210,7 +210,7 @@ void PeripheralBase::notify(BluetoothUUID const& service, BluetoothUUID const& c
     // TODO: What to do if the characteristic is already being notified?
     // TODO: Check if the property can be notified.
     // auto characteristic_object = _get_characteristic(service, characteristic);
-    // characteristic_object->set_on_value_changed([callback](SimpleBluez::ByteArray new_value, const size_t size) { 
+    // characteristic_object->set_on_value_changed([callback](SimpleBluez::ByteArray new_value) { 
         // callback(new_value, size); 
     // });
     // characteristic_object->start_notify();
