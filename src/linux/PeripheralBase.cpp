@@ -17,9 +17,9 @@ PeripheralBase::PeripheralBase(std::shared_ptr<SimpleBluez::Device> device,
     : device_(std::move(device)), adapter_(std::move(adapter)) {}
 
 PeripheralBase::~PeripheralBase() {
-    // TODO: A more extensive cleanup process is probably needed.
     device_->clear_on_disconnected();
     device_->clear_on_services_resolved();
+    _cleanup_characteristics();
 }
 
 std::string PeripheralBase::identifier() { return device_->name(); }
@@ -42,6 +42,7 @@ void PeripheralBase::connect() {
     // Set the on_disconnected callback once the connection attempts are finished, thus
     // preventing disconnection events that should not be seen by the user.
     device_->set_on_disconnected([this]() {
+        this->_cleanup_characteristics();
         this->disconnection_cv_.notify_all();
 
         if (this->callback_on_disconnected_) {
@@ -264,6 +265,24 @@ void PeripheralBase::set_callback_on_disconnected(std::function<void()> on_disco
 
 // Private methods
 
+void PeripheralBase::_cleanup_characteristics() {
+    // Get rid of all the callbacks to ensure that no invalid objects are being called.
+
+    if (device_->has_battery_interface()) {
+        device_->clear_on_battery_percentage_changed();
+    }
+
+    for (auto bluez_service : device_->services()) {
+        for (auto bluez_characteristic : bluez_service->characteristics()) {
+            bluez_characteristic->clear_on_value_changed();
+
+            if (bluez_characteristic->notifying()) {
+                bluez_characteristic->stop_notify();
+            }
+        }
+    }
+}
+
 bool PeripheralBase::_attempt_connect() {
     try {
         device_->connect();
@@ -278,6 +297,8 @@ bool PeripheralBase::_attempt_connect() {
 }
 
 bool PeripheralBase::_attempt_disconnect() {
+    _cleanup_characteristics();
+
     device_->disconnect();
 
     // Wait for the disconnection to be confirmed.
