@@ -4,7 +4,7 @@ if (SIMPLEBLUEZ_VENDORIZE)
 
     # Load default parameters passed in through the command line.
     if(NOT SIMPLEBLUEZ_GIT_REPOSITORY)
-        set(SIMPLEBLUEZ_GIT_REPOSITORY "https://github.com/OpenBluetoothToolbox/SimpleBluez.git")
+        set(SIMPLEBLUEZ_GIT_REPOSITORY "git@github.com:bpapaspyros/SimpleBluez.git")
     endif()
     if(NOT SIMPLEBLUEZ_GIT_TAG)
         set(SIMPLEBLUEZ_GIT_TAG "master") # TODO: Switch to the latest SimpleBluez release once done.
