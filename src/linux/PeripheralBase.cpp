@@ -150,7 +150,7 @@ void PeripheralBase::write_request(BluetoothUUID const& service, BluetoothUUID c
 }
 
 void PeripheralBase::write_request(BluetoothUUID const& service, BluetoothUUID const& characteristic,
-                                   const ByteArray data, const int size) {
+                                   const ByteArray data, const size_t size) {
     // TODO: implement
     // // TODO: Check if the characteristic is writable.
     // // TODO: SimpleBluez::Characteristic::write_request() should also take ByteStrArray by const reference (but that's
@@ -167,7 +167,7 @@ void PeripheralBase::write_command(BluetoothUUID const& service, BluetoothUUID c
 }
 
 void PeripheralBase::write_command(BluetoothUUID const& service, BluetoothUUID const& characteristic,
-                                   const ByteArray data, const int size) {
+                                   const ByteArray data, const size_t size) {
     // TODO: Check if the characteristic is writable.
     _get_characteristic(service, characteristic)->write_command(data, size);
 }
@@ -193,7 +193,7 @@ void PeripheralBase::notify(BluetoothUUID const& service, BluetoothUUID const& c
 }
 
 void PeripheralBase::notify(BluetoothUUID const& service, BluetoothUUID const& characteristic,
-                            std::function<void(ByteArray payload, const int size)> callback) {
+                            std::function<void(ByteArray payload, const size_t size)> callback) {
     // TODO: implement
     // // Check if the user is attempting to notify the battery service/characteristic and if so,
     // //  emulate the battery service through the Battery1 interface if it's not available.
