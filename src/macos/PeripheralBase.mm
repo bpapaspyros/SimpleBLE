@@ -101,7 +101,7 @@ void PeripheralBase::write_request(BluetoothUUID const& service, BluetoothUUID c
     [internal writeRequest:service_uuid characteristic_uuid:characteristic_uuid payload:payload];
 }
 
-void PeripheralBase::write_request(BluetoothUUID const& service, BluetoothUUID const& characteristic, const ByteArray const data,
+void PeripheralBase::write_request(BluetoothUUID const& service, BluetoothUUID const& characteristic, const ByteArray data,
                                    const int size) {
     PeripheralBaseMacOS* internal = (__bridge PeripheralBaseMacOS*)opaque_internal_;
 
@@ -122,7 +122,7 @@ void PeripheralBase::write_command(BluetoothUUID const& service, BluetoothUUID c
     [internal writeCommand:service_uuid characteristic_uuid:characteristic_uuid payload:payload];
 }
 
-void PeripheralBase::write_command(BluetoothUUID const& service, BluetoothUUID const& characteristic, const ByteArray const data,
+void PeripheralBase::write_command(BluetoothUUID const& service, BluetoothUUID const& characteristic, const ByteArray data,
                                    const int size) {
     PeripheralBaseMacOS* internal = (__bridge PeripheralBaseMacOS*)opaque_internal_;
 

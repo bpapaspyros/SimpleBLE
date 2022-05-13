@@ -32,7 +32,7 @@ class PeripheralBase {
 
     ByteStrArray read(BluetoothUUID const& service, BluetoothUUID const& characteristic);
     void write_request(BluetoothUUID const& service, BluetoothUUID const& characteristic, ByteStrArray const& data);
-    void write_request(BluetoothUUID const& service, BluetoothUUID const& characteristic, const ByteArray const data,
+    void write_request(BluetoothUUID const& service, BluetoothUUID const& characteristic, const ByteArray data,
                        const int size);
     void write_command(BluetoothUUID const& service, BluetoothUUID const& characteristic, ByteStrArray const& data);
     void write_command(BluetoothUUID const& service, BluetoothUUID const& characteristic, ByteArray const data,

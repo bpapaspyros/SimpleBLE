@@ -90,7 +90,7 @@ void Peripheral::write_request(BluetoothUUID const& service, BluetoothUUID const
 }
 
 void Peripheral::write_request(BluetoothUUID const& service, BluetoothUUID const& characteristic,
-                               const ByteArray const data, const int size) {
+                               const ByteArray data, const int size) {
     if (!initialized()) throw Exception::NotInitialized();
     if (!is_connected()) throw Exception::OperationFailed();
 
@@ -106,7 +106,7 @@ void Peripheral::write_command(BluetoothUUID const& service, BluetoothUUID const
 }
 
 void Peripheral::write_command(BluetoothUUID const& service, BluetoothUUID const& characteristic,
-                               const ByteArray const data, const int size) {
+                               const ByteArray data, const int size) {
     if (!initialized()) throw Exception::NotInitialized();
     if (!is_connected()) throw Exception::OperationFailed();
 
