@@ -91,6 +91,15 @@ ByteStrArray PeripheralBase::read(BluetoothUUID const& service, BluetoothUUID co
     return [internal read:service_uuid characteristic_uuid:characteristic_uuid];
 }
 
+ByteArray PeripheralBase::readBytes(BluetoothUUID const& service, BluetoothUUID const& characteristic) {
+    PeripheralBaseMacOS* internal = (__bridge PeripheralBaseMacOS*)opaque_internal_;
+
+    NSString* service_uuid = [NSString stringWithCString:service.c_str() encoding:NSString.defaultCStringEncoding];
+    NSString* characteristic_uuid = [NSString stringWithCString:characteristic.c_str() encoding:NSString.defaultCStringEncoding];
+
+    return [internal readBytes:service_uuid characteristic_uuid:characteristic_uuid];
+}
+
 void PeripheralBase::write_request(BluetoothUUID const& service, BluetoothUUID const& characteristic, ByteStrArray const& data) {
     PeripheralBaseMacOS* internal = (__bridge PeripheralBaseMacOS*)opaque_internal_;
 
