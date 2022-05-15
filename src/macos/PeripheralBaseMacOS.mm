@@ -313,10 +313,10 @@ typedef struct {
     }
 
     // Wait for the update to complete for up to 1 second.
-    NSDate* endDate = [NSDate dateWithTimeInterval:1.0 sinceDate:NSDate.now];
-    while (!characteristic.isNotifying && [NSDate.now compare:endDate] == NSOrderedAscending) {
-        [NSThread sleepForTimeInterval:0.01];
-    }
+    // NSDate* endDate = [NSDate dateWithTimeInterval:1.0 sinceDate:NSDate.now];
+    // while (!characteristic.isNotifying && [NSDate.now compare:endDate] == NSOrderedAscending) {
+    //     [NSThread sleepForTimeInterval:0.01];
+    // }
 
     if (!characteristic.isNotifying) {
         // TODO: Raise an exception.
