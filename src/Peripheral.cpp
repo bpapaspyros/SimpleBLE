@@ -144,6 +144,14 @@ void Peripheral::indicate(BluetoothUUID const& service, BluetoothUUID const& cha
     internal_->indicate(service, characteristic, std::move(callback));
 }
 
+void Peripheral::indicate(BluetoothUUID const& service, BluetoothUUID const& characteristic,
+                          std::function<void(ByteArray payload)> callback) {
+    if (!initialized()) throw Exception::NotInitialized();
+    if (!is_connected()) throw Exception::OperationFailed();
+
+    internal_->indicate(service, characteristic, std::move(callback));
+}
+
 void Peripheral::unsubscribe(BluetoothUUID const& service, BluetoothUUID const& characteristic) {
     if (!initialized()) throw Exception::NotInitialized();
     if (!is_connected()) throw Exception::OperationFailed();

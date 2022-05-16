@@ -1,6 +1,8 @@
 #import "PeripheralBaseMacOS.h"
 #import "Utils.h"
 
+#include <iostream>
+
 typedef struct {
     BOOL readPending;
     BOOL writePending;
@@ -61,7 +63,7 @@ typedef struct {
         // Wait for the connection to be established for up to 5 seconds.
         endDate = [NSDate dateWithTimeInterval:5.0 sinceDate:NSDate.now];
         while (self.peripheral.state == CBPeripheralStateConnecting && [NSDate.now compare:endDate] == NSOrderedAscending) {
-            [NSThread sleepForTimeInterval:0.01];
+            [NSThread sleepForTimeInterval:0.001];
         }
 
         if (self.peripheral.state != CBPeripheralStateConnected) {
@@ -75,9 +77,9 @@ typedef struct {
 
         // Wait for services to be discovered for up to 1 second.
         // NOTE: This is a bit of a hack but avoids the need of having a dedicated flag.
-        endDate = [NSDate dateWithTimeInterval:1.0 sinceDate:NSDate.now];
+        endDate = [NSDate dateWithTimeInterval:0.5 sinceDate:NSDate.now];
         while (self.peripheral.services == nil && [NSDate.now compare:endDate] == NSOrderedAscending) {
-            [NSThread sleepForTimeInterval:0.01];
+            [NSThread sleepForTimeInterval:0.001];
         }
 
         if (self.peripheral.services == nil) {
@@ -93,9 +95,9 @@ typedef struct {
 
             // Wait for characteristics  to be discovered for up to 1 second.
             // NOTE: This is a bit of a hack but avoids the need of having a dedicated flag.
-            endDate = [NSDate dateWithTimeInterval:1.0 sinceDate:NSDate.now];
+            endDate = [NSDate dateWithTimeInterval:0.5 sinceDate:NSDate.now];
             while (service.characteristics == nil && [NSDate.now compare:endDate] == NSOrderedAscending) {
-                [NSThread sleepForTimeInterval:0.01];
+                [NSThread sleepForTimeInterval:0.001];
             }
 
             if (service.characteristics == nil) {
@@ -124,7 +126,7 @@ typedef struct {
         // Wait for the connection to be established for up to 5 seconds.
         endDate = [NSDate dateWithTimeInterval:5.0 sinceDate:NSDate.now];
         while (self.peripheral.state == CBPeripheralStateDisconnecting && [NSDate.now compare:endDate] == NSOrderedAscending) {
-            [NSThread sleepForTimeInterval:0.01];
+            [NSThread sleepForTimeInterval:0.001];
         }
 
         if (self.peripheral.state != CBPeripheralStateDisconnected) {
@@ -181,10 +183,10 @@ typedef struct {
     }
 
     // Wait for the read to complete for up to 1 second.
-    NSDate* endDate = [NSDate dateWithTimeInterval:1.0 sinceDate:NSDate.now];
+    NSDate* endDate = [NSDate dateWithTimeInterval:0.5 sinceDate:NSDate.now];
     BOOL readPending = YES;
     while (readPending && [NSDate.now compare:endDate] == NSOrderedAscending) {
-        [NSThread sleepForTimeInterval:0.01];
+        [NSThread sleepForTimeInterval:0.001];
         @synchronized(self) {
             readPending = characteristic_extras_[uuidToSimpleBLE(characteristic.UUID)].readPending;
         }
@@ -217,10 +219,10 @@ typedef struct {
     }
 
     // Wait for the read to complete for up to 1 second.
-    NSDate* endDate = [NSDate dateWithTimeInterval:1.0 sinceDate:NSDate.now];
+    NSDate* endDate = [NSDate dateWithTimeInterval:0.5 sinceDate:NSDate.now];
     BOOL readPending = YES;
     while (readPending && [NSDate.now compare:endDate] == NSOrderedAscending) {
-        [NSThread sleepForTimeInterval:0.01];
+        [NSThread sleepForTimeInterval:0.001];
         @synchronized(self) {
             readPending = characteristic_extras_[uuidToSimpleBLE(characteristic.UUID)].readPending;
         }
@@ -262,10 +264,10 @@ typedef struct {
     }
 
     // Wait for the read to complete for up to 1 second.
-    NSDate* endDate = [NSDate dateWithTimeInterval:1.0 sinceDate:NSDate.now];
+    NSDate* endDate = [NSDate dateWithTimeInterval:0.5 sinceDate:NSDate.now];
     BOOL writePending = YES;
     while (writePending && [NSDate.now compare:endDate] == NSOrderedAscending) {
-        [NSThread sleepForTimeInterval:0.01];
+        [NSThread sleepForTimeInterval:0.001];
         @synchronized(self) {
             writePending = characteristic_extras_[uuidToSimpleBLE(characteristic.UUID)].writePending;
         }
@@ -321,9 +323,9 @@ typedef struct {
     }
 
     // Wait for the update to complete for up to 1 second.
-    NSDate* endDate = [NSDate dateWithTimeInterval:1.0 sinceDate:NSDate.now];
+    NSDate* endDate = [NSDate dateWithTimeInterval:0.5 sinceDate:NSDate.now];
     while (!characteristic.isNotifying && [NSDate.now compare:endDate] == NSOrderedAscending) {
-        [NSThread sleepForTimeInterval:0.01];
+        [NSThread sleepForTimeInterval:0.001];
     }
 
     if (!characteristic.isNotifying) {
@@ -351,9 +353,9 @@ typedef struct {
     }
 
     // Wait for the update to complete for up to 1 second.
-    NSDate* endDate = [NSDate dateWithTimeInterval:1.0 sinceDate:NSDate.now];
+    NSDate* endDate = [NSDate dateWithTimeInterval:0.5 sinceDate:NSDate.now];
     while (!characteristic.isNotifying && [NSDate.now compare:endDate] == NSOrderedAscending) {
-        [NSThread sleepForTimeInterval:0.01];
+        [NSThread sleepForTimeInterval:0.001];
     }
 
     if (!characteristic.isNotifying) {
@@ -388,9 +390,9 @@ typedef struct {
         [self.peripheral setNotifyValue:NO forCharacteristic:characteristic];
 
         // Wait for the update to complete for up to 1 second.
-        NSDate* endDate = [NSDate dateWithTimeInterval:1.0 sinceDate:NSDate.now];
+        NSDate* endDate = [NSDate dateWithTimeInterval:0.5 sinceDate:NSDate.now];
         while (characteristic.isNotifying && [NSDate.now compare:endDate] == NSOrderedAscending) {
-            [NSThread sleepForTimeInterval:0.01];
+            [NSThread sleepForTimeInterval:0.001];
         }
 
         if (characteristic.isNotifying) {
