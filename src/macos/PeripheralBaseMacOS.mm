@@ -199,6 +199,44 @@ typedef struct {
     return SimpleBLE::ByteStrArray((const char*)characteristic.value.bytes, characteristic.value.length);
 }
 
+- (SimpleBLE::ByteArray)readBytes:(NSString*)service_uuid characteristic_uuid:(NSString*)characteristic_uuid {
+    std::pair<CBService*, CBCharacteristic*> serviceAndCharacteristic = [self findServiceAndCharacteristic:service_uuid
+                                                                                       characteristic_uuid:characteristic_uuid];
+
+    if (serviceAndCharacteristic.first == nil || serviceAndCharacteristic.second == nil) {
+        // TODO: Raise an exception.
+        NSLog(@"Could not find service and characteristic.");
+        return SimpleBLE::ByteArray();
+    }
+
+    CBCharacteristic* characteristic = serviceAndCharacteristic.second;
+
+    @synchronized(self) {
+        characteristic_extras_[uuidToSimpleBLE(characteristic.UUID)].readPending = YES;
+        [self.peripheral readValueForCharacteristic:characteristic];
+    }
+
+    // Wait for the read to complete for up to 1 second.
+    NSDate* endDate = [NSDate dateWithTimeInterval:1.0 sinceDate:NSDate.now];
+    BOOL readPending = YES;
+    while (readPending && [NSDate.now compare:endDate] == NSOrderedAscending) {
+        [NSThread sleepForTimeInterval:0.01];
+        @synchronized(self) {
+            readPending = characteristic_extras_[uuidToSimpleBLE(characteristic.UUID)].readPending;
+        }
+    }
+
+    if (readPending) {
+        // TODO: Raise an exception.
+        NSLog(@"Characteristic %@ could not be read", characteristic.UUID);
+        return SimpleBLE::ByteArray();
+    }
+
+    SimpleBLE::ByteArray r(characteristic.value.length);
+    std::copy(characteristic.value.bytes, characteristic.value.bytes + characteristic.value.length, r.begin());
+    return r;
+}
+
 - (void)writeRequest:(NSString*)service_uuid characteristic_uuid:(NSString*)characteristic_uuid payload:(NSData*)payload {
     std::pair<CBService*, CBCharacteristic*> serviceAndCharacteristic = [self findServiceAndCharacteristic:service_uuid
                                                                                        characteristic_uuid:characteristic_uuid];

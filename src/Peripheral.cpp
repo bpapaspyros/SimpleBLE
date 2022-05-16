@@ -81,6 +81,13 @@ ByteStrArray Peripheral::read(BluetoothUUID const& service, BluetoothUUID const&
     return internal_->read(service, characteristic);
 }
 
+ByteArray Peripheral::readBytes(BluetoothUUID const& service, BluetoothUUID const& characteristic) {
+    if (!initialized()) throw Exception::NotInitialized();
+    if (!is_connected()) throw Exception::OperationFailed();
+
+    return internal_->readBytes(service, characteristic);
+}
+
 void Peripheral::write_request(BluetoothUUID const& service, BluetoothUUID const& characteristic,
                                ByteStrArray const& data) {
     if (!initialized()) throw Exception::NotInitialized();
