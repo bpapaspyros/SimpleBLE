@@ -11,10 +11,10 @@ using BluetoothAddress = std::string;
 // returns the same string, but provides a homogeneous interface.
 using BluetoothUUID = std::string;
 
-// IDEA: Extend ByteArray to be constructed by a vector of bytes
+// IDEA: Extend ByteStrArray to be constructed by a vector of bytes
 // and pointers to uint8_t.
-using ByteArray = std::string;
-
+using ByteStrArray = std::string;
+using ByteArray = std::vector<uint8_t>;
 
 struct BluetoothService {
     BluetoothUUID uuid;

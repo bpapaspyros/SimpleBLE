@@ -8,7 +8,7 @@
 
 std::vector<SimpleBLE::Peripheral> peripherals;
 
-void print_byte_array(SimpleBLE::ByteArray& bytes) {
+void print_byte_array(SimpleBLE::ByteStrArray& bytes) {
     for (auto byte : bytes) {
         std::cout << std::hex << std::setfill('0') << std::setw(2) << (uint32_t)((uint8_t)byte) << " ";
     }
@@ -30,7 +30,7 @@ int main() {
     }
 
     int adapter_selection = -1;
-    while(adapter_selection < 0 || adapter_selection > adapter_list.size() - 1) {
+    while (adapter_selection < 0 || adapter_selection > adapter_list.size() - 1) {
         std::cout << "Please select an adapter: ";
         std::cin >> adapter_selection;
     }
@@ -84,7 +84,7 @@ int main() {
 
         if (selection >= 0 && selection < uuids.size()) {
             // Attempt to read the characteristic.
-            SimpleBLE::ByteArray rx_data = peripheral.read(uuids[selection].first, uuids[selection].second);
+            SimpleBLE::ByteStrArray rx_data = peripheral.read(uuids[selection].first, uuids[selection].second);
             std::cout << "Characteristic contents were: ";
             print_byte_array(rx_data);
         }

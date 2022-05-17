@@ -104,9 +104,9 @@ std::vector<BluetoothService> PeripheralBase::services() {
     return list_of_services;
 }
 
-std::map<uint16_t, ByteArray> PeripheralBase::manufacturer_data() { return manufacturer_data_; }
+std::map<uint16_t, ByteStrArray> PeripheralBase::manufacturer_data() { return manufacturer_data_; }
 
-ByteArray PeripheralBase::read(BluetoothUUID const& service, BluetoothUUID const& characteristic) {
+ByteStrArray PeripheralBase::read(BluetoothUUID const& service, BluetoothUUID const& characteristic) {
     GattCharacteristic gatt_characteristic = _fetch_characteristic(service, characteristic);
 
     // Validate that the operation can be performed.
@@ -124,7 +124,7 @@ ByteArray PeripheralBase::read(BluetoothUUID const& service, BluetoothUUID const
 }
 
 void PeripheralBase::write_request(BluetoothUUID const& service, BluetoothUUID const& characteristic,
-                                   ByteArray const& data) {
+                                   ByteStrArray const& data) {
     GattCharacteristic gatt_characteristic = _fetch_characteristic(service, characteristic);
 
     // Validate that the operation can be performed.
@@ -144,7 +144,7 @@ void PeripheralBase::write_request(BluetoothUUID const& service, BluetoothUUID c
 }
 
 void PeripheralBase::write_command(BluetoothUUID const& service, BluetoothUUID const& characteristic,
-                                   ByteArray const& data) {
+                                   ByteStrArray const& data) {
     GattCharacteristic gatt_characteristic = _fetch_characteristic(service, characteristic);
 
     // Validate that the operation can be performed.
@@ -164,7 +164,7 @@ void PeripheralBase::write_command(BluetoothUUID const& service, BluetoothUUID c
 }
 
 void PeripheralBase::notify(BluetoothUUID const& service, BluetoothUUID const& characteristic,
-                            std::function<void(ByteArray payload)> callback) {
+                            std::function<void(ByteStrArray payload)> callback) {
     GattCharacteristic gatt_characteristic = _fetch_characteristic(service, characteristic);
 
     // Validate that the operation can be performed.
@@ -175,8 +175,8 @@ void PeripheralBase::notify(BluetoothUUID const& service, BluetoothUUID const& c
 
     // Register the callback.
     gatt_characteristic.ValueChanged([=](const GattCharacteristic& sender, const GattValueChangedEventArgs& args) {
-        // Convert the payload to a ByteArray.
-        ByteArray payload = ibuffer_to_bytearray(args.CharacteristicValue());
+        // Convert the payload to a ByteStrArray.
+        ByteStrArray payload = ibuffer_to_bytearray(args.CharacteristicValue());
         callback(payload);
     });
 
@@ -190,7 +190,7 @@ void PeripheralBase::notify(BluetoothUUID const& service, BluetoothUUID const& c
 }
 
 void PeripheralBase::indicate(BluetoothUUID const& service, BluetoothUUID const& characteristic,
-                              std::function<void(ByteArray payload)> callback) {
+                              std::function<void(ByteStrArray payload)> callback) {
     GattCharacteristic gatt_characteristic = _fetch_characteristic(service, characteristic);
 
     // Validate that the operation can be performed.
@@ -201,8 +201,8 @@ void PeripheralBase::indicate(BluetoothUUID const& service, BluetoothUUID const&
 
     // Register the callback.
     gatt_characteristic.ValueChanged([=](const GattCharacteristic& sender, const GattValueChangedEventArgs& args) {
-        // Convert the payload to a ByteArray.
-        ByteArray payload = ibuffer_to_bytearray(args.CharacteristicValue());
+        // Convert the payload to a ByteStrArray.
+        ByteStrArray payload = ibuffer_to_bytearray(args.CharacteristicValue());
         callback(payload);
     });
 

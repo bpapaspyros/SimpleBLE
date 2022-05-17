@@ -25,15 +25,17 @@ class Peripheral : public SimpleBLE::Peripheral {
     bool unpair() noexcept;
 
     std::optional<std::vector<BluetoothService>> services() noexcept;
-    std::optional<std::map<uint16_t, ByteArray>> manufacturer_data() noexcept;
+    std::optional<std::map<uint16_t, ByteStrArray>> manufacturer_data() noexcept;
 
-    std::optional<ByteArray> read(BluetoothUUID const& service, BluetoothUUID const& characteristic) noexcept;
-    bool write_request(BluetoothUUID const& service, BluetoothUUID const& characteristic, ByteArray const& data) noexcept;
-    bool write_command(BluetoothUUID const& service, BluetoothUUID const& characteristic, ByteArray const& data) noexcept;
+    std::optional<ByteStrArray> read(BluetoothUUID const& service, BluetoothUUID const& characteristic) noexcept;
+    bool write_request(BluetoothUUID const& service, BluetoothUUID const& characteristic,
+                       ByteStrArray const& data) noexcept;
+    bool write_command(BluetoothUUID const& service, BluetoothUUID const& characteristic,
+                       ByteStrArray const& data) noexcept;
     bool notify(BluetoothUUID const& service, BluetoothUUID const& characteristic,
-                std::function<void(ByteArray payload)> callback) noexcept;
+                std::function<void(ByteStrArray payload)> callback) noexcept;
     bool indicate(BluetoothUUID const& service, BluetoothUUID const& characteristic,
-                  std::function<void(ByteArray payload)> callback) noexcept;
+                  std::function<void(ByteStrArray payload)> callback) noexcept;
     bool unsubscribe(BluetoothUUID const& service, BluetoothUUID const& characteristic) noexcept;
 
     bool set_callback_on_connected(std::function<void()> on_connected) noexcept;

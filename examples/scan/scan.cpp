@@ -1,12 +1,12 @@
 #include <chrono>
-#include <iostream>
-#include <thread>
-#include <sstream>
 #include <iomanip>
+#include <iostream>
+#include <sstream>
+#include <thread>
 
 #include "simpleble/Adapter.h"
 
-std::string byte_array_to_string(SimpleBLE::ByteArray& bytes) {
+std::string byte_array_to_string(SimpleBLE::ByteStrArray& bytes) {
     std::ostringstream oss;
     for (auto byte : bytes) {
         oss << std::hex << std::setfill('0') << std::setw(2) << (uint32_t)((uint8_t)byte) << " ";
@@ -29,7 +29,7 @@ int main() {
     }
 
     int adapter_selection = -1;
-    while(adapter_selection < 0 || adapter_selection > adapter_list.size() - 1) {
+    while (adapter_selection < 0 || adapter_selection > adapter_list.size() - 1) {
         std::cout << "Please select an adapter: ";
         std::cin >> adapter_selection;
     }
@@ -41,11 +41,13 @@ int main() {
     adapter.set_callback_on_scan_stop([]() { std::cout << "Scan stopped." << std::endl; });
 
     adapter.set_callback_on_scan_found([](SimpleBLE::Peripheral peripheral) {
-        std::cout << "Found device: " << peripheral.identifier() << " [" << peripheral.address() << "] " << peripheral.rssi() << " dBm" << std::endl;
+        std::cout << "Found device: " << peripheral.identifier() << " [" << peripheral.address() << "] "
+                  << peripheral.rssi() << " dBm" << std::endl;
     });
 
     adapter.set_callback_on_scan_updated([](SimpleBLE::Peripheral peripheral) {
-        std::cout << "Updated device: " << peripheral.identifier() << " [" << peripheral.address() << "] " << peripheral.rssi() << " dBm" << std::endl;
+        std::cout << "Updated device: " << peripheral.identifier() << " [" << peripheral.address() << "] "
+                  << peripheral.rssi() << " dBm" << std::endl;
     });
 
     // Scan for 5 seconds.
@@ -65,7 +67,7 @@ int main() {
         std::string peripheral_string = peripherals[i].identifier() + " [" + peripherals[i].address() + "]";
 
         std::cout << "[" << i << "] " << peripheral_string << " " << connectable_string << std::endl;
-        std::map<uint16_t, SimpleBLE::ByteArray> manufacturer_data = peripherals[i].manufacturer_data();
+        std::map<uint16_t, SimpleBLE::ByteStrArray> manufacturer_data = peripherals[i].manufacturer_data();
         for (auto& [manufacturer_id, data] : manufacturer_data) {
             std::cout << "    Manufacturer ID: " << manufacturer_id << std::endl;
             std::cout << "    Manufacturer data: " << byte_array_to_string(data) << std::endl;

@@ -37,15 +37,15 @@ class PeripheralBase {
     void unpair();
 
     std::vector<BluetoothService> services();
-    std::map<uint16_t, ByteArray> manufacturer_data();
+    std::map<uint16_t, ByteStrArray> manufacturer_data();
 
-    ByteArray read(BluetoothUUID const& service, BluetoothUUID const& characteristic);
-    void write_request(BluetoothUUID const& service, BluetoothUUID const& characteristic, ByteArray const& data);
-    void write_command(BluetoothUUID const& service, BluetoothUUID const& characteristic, ByteArray const& data);
+    ByteStrArray read(BluetoothUUID const& service, BluetoothUUID const& characteristic);
+    void write_request(BluetoothUUID const& service, BluetoothUUID const& characteristic, ByteStrArray const& data);
+    void write_command(BluetoothUUID const& service, BluetoothUUID const& characteristic, ByteStrArray const& data);
     void notify(BluetoothUUID const& service, BluetoothUUID const& characteristic,
-                std::function<void(ByteArray payload)> callback);
+                std::function<void(ByteStrArray payload)> callback);
     void indicate(BluetoothUUID const& service, BluetoothUUID const& characteristic,
-                  std::function<void(ByteArray payload)> callback);
+                  std::function<void(ByteStrArray payload)> callback);
     void unsubscribe(BluetoothUUID const& service, BluetoothUUID const& characteristic);
 
     void set_callback_on_connected(std::function<void()> on_connected);
@@ -75,7 +75,7 @@ class PeripheralBase {
     kvn::safe_callback<void()> callback_on_connected_;
     kvn::safe_callback<void()> callback_on_disconnected_;
 
-    std::map<uint16_t, SimpleBLE::ByteArray> manufacturer_data_;
+    std::map<uint16_t, SimpleBLE::ByteStrArray> manufacturer_data_;
 
     bool _attempt_connect();
     GattCharacteristic _fetch_characteristic(const BluetoothUUID& service_uuid,

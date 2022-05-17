@@ -81,7 +81,7 @@ bool SimpleBLE::Safe::Peripheral::unpair() noexcept {
     }
 }
 
-std::optional<std::map<uint16_t, SimpleBLE::ByteArray>> SimpleBLE::Safe::Peripheral::manufacturer_data() noexcept {
+std::optional<std::map<uint16_t, SimpleBLE::ByteStrArray>> SimpleBLE::Safe::Peripheral::manufacturer_data() noexcept {
     try {
         return SimpleBLE::Peripheral::manufacturer_data();
     } catch (const SimpleBLE::Exception::BaseException& e) {
@@ -97,8 +97,8 @@ std::optional<std::vector<SimpleBLE::BluetoothService>> SimpleBLE::Safe::Periphe
     }
 }
 
-std::optional<SimpleBLE::ByteArray> SimpleBLE::Safe::Peripheral::read(BluetoothUUID const& service,
-                                                                      BluetoothUUID const& characteristic) noexcept {
+std::optional<SimpleBLE::ByteStrArray> SimpleBLE::Safe::Peripheral::read(BluetoothUUID const& service,
+                                                                         BluetoothUUID const& characteristic) noexcept {
     try {
         return SimpleBLE::Peripheral::read(service, characteristic);
     } catch (const SimpleBLE::Exception::BaseException& e) {
@@ -107,7 +107,7 @@ std::optional<SimpleBLE::ByteArray> SimpleBLE::Safe::Peripheral::read(BluetoothU
 }
 
 bool SimpleBLE::Safe::Peripheral::write_request(BluetoothUUID const& service, BluetoothUUID const& characteristic,
-                                                ByteArray const& data) noexcept {
+                                                ByteStrArray const& data) noexcept {
     try {
         SimpleBLE::Peripheral::write_request(service, characteristic, data);
         return true;
@@ -117,7 +117,7 @@ bool SimpleBLE::Safe::Peripheral::write_request(BluetoothUUID const& service, Bl
 }
 
 bool SimpleBLE::Safe::Peripheral::write_command(BluetoothUUID const& service, BluetoothUUID const& characteristic,
-                                                ByteArray const& data) noexcept {
+                                                ByteStrArray const& data) noexcept {
     try {
         SimpleBLE::Peripheral::write_command(service, characteristic, data);
         return true;
@@ -127,7 +127,7 @@ bool SimpleBLE::Safe::Peripheral::write_command(BluetoothUUID const& service, Bl
 }
 
 bool SimpleBLE::Safe::Peripheral::notify(BluetoothUUID const& service, BluetoothUUID const& characteristic,
-                                         std::function<void(ByteArray payload)> callback) noexcept {
+                                         std::function<void(ByteStrArray payload)> callback) noexcept {
     try {
         SimpleBLE::Peripheral::notify(service, characteristic, std::move(callback));
         return true;
@@ -137,7 +137,7 @@ bool SimpleBLE::Safe::Peripheral::notify(BluetoothUUID const& service, Bluetooth
 }
 
 bool SimpleBLE::Safe::Peripheral::indicate(BluetoothUUID const& service, BluetoothUUID const& characteristic,
-                                           std::function<void(ByteArray payload)> callback) noexcept {
+                                           std::function<void(ByteStrArray payload)> callback) noexcept {
     try {
         SimpleBLE::Peripheral::indicate(service, characteristic, std::move(callback));
         return true;

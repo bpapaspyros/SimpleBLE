@@ -117,7 +117,8 @@
         const char* manufacturerDataBytes = (const char*)rawManufacturerData.bytes;
 
         uint16_t manufacturerID = *((uint16_t*)manufacturerDataBytes);
-        SimpleBLE::ByteArray manufacturerData = SimpleBLE::ByteArray(&manufacturerDataBytes[2], (size_t)(rawManufacturerData.length - 2));
+        SimpleBLE::ByteStrArray manufacturerData = SimpleBLE::ByteStrArray(&manufacturerDataBytes[2],
+                                                                           (size_t)(rawManufacturerData.length - 2));
         advertisingData.manufacturer_data[manufacturerID] = manufacturerData;
     }
 

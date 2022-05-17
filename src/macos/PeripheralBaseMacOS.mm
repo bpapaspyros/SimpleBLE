@@ -1,10 +1,13 @@
 #import "PeripheralBaseMacOS.h"
 #import "Utils.h"
 
+#include <iostream>
+
 typedef struct {
     BOOL readPending;
     BOOL writePending;
-    std::function<void(SimpleBLE::ByteArray)> valueChangedCallback;
+    std::function<void(SimpleBLE::ByteStrArray)> valueChangedCallback;
+    std::function<void(SimpleBLE::ByteArray)> valueChangedCallbackBytes;
 } characteristic_extras_t;
 
 @interface PeripheralBaseMacOS () {
@@ -60,7 +63,7 @@ typedef struct {
         // Wait for the connection to be established for up to 5 seconds.
         endDate = [NSDate dateWithTimeInterval:5.0 sinceDate:NSDate.now];
         while (self.peripheral.state == CBPeripheralStateConnecting && [NSDate.now compare:endDate] == NSOrderedAscending) {
-            [NSThread sleepForTimeInterval:0.01];
+            [NSThread sleepForTimeInterval:0.001];
         }
 
         if (self.peripheral.state != CBPeripheralStateConnected) {
@@ -74,9 +77,9 @@ typedef struct {
 
         // Wait for services to be discovered for up to 1 second.
         // NOTE: This is a bit of a hack but avoids the need of having a dedicated flag.
-        endDate = [NSDate dateWithTimeInterval:1.0 sinceDate:NSDate.now];
+        endDate = [NSDate dateWithTimeInterval:0.5 sinceDate:NSDate.now];
         while (self.peripheral.services == nil && [NSDate.now compare:endDate] == NSOrderedAscending) {
-            [NSThread sleepForTimeInterval:0.01];
+            [NSThread sleepForTimeInterval:0.001];
         }
 
         if (self.peripheral.services == nil) {
@@ -92,9 +95,9 @@ typedef struct {
 
             // Wait for characteristics  to be discovered for up to 1 second.
             // NOTE: This is a bit of a hack but avoids the need of having a dedicated flag.
-            endDate = [NSDate dateWithTimeInterval:1.0 sinceDate:NSDate.now];
+            endDate = [NSDate dateWithTimeInterval:0.5 sinceDate:NSDate.now];
             while (service.characteristics == nil && [NSDate.now compare:endDate] == NSOrderedAscending) {
-                [NSThread sleepForTimeInterval:0.01];
+                [NSThread sleepForTimeInterval:0.001];
             }
 
             if (service.characteristics == nil) {
@@ -123,7 +126,7 @@ typedef struct {
         // Wait for the connection to be established for up to 5 seconds.
         endDate = [NSDate dateWithTimeInterval:5.0 sinceDate:NSDate.now];
         while (self.peripheral.state == CBPeripheralStateDisconnecting && [NSDate.now compare:endDate] == NSOrderedAscending) {
-            [NSThread sleepForTimeInterval:0.01];
+            [NSThread sleepForTimeInterval:0.001];
         }
 
         if (self.peripheral.state != CBPeripheralStateDisconnected) {
@@ -162,7 +165,43 @@ typedef struct {
     return services;
 }
 
-- (SimpleBLE::ByteArray)read:(NSString*)service_uuid characteristic_uuid:(NSString*)characteristic_uuid {
+- (SimpleBLE::ByteStrArray)read:(NSString*)service_uuid characteristic_uuid:(NSString*)characteristic_uuid {
+    std::pair<CBService*, CBCharacteristic*> serviceAndCharacteristic = [self findServiceAndCharacteristic:service_uuid
+                                                                                       characteristic_uuid:characteristic_uuid];
+
+    if (serviceAndCharacteristic.first == nil || serviceAndCharacteristic.second == nil) {
+        // TODO: Raise an exception.
+        NSLog(@"Could not find service and characteristic.");
+        return SimpleBLE::ByteStrArray();
+    }
+
+    CBCharacteristic* characteristic = serviceAndCharacteristic.second;
+
+    @synchronized(self) {
+        characteristic_extras_[uuidToSimpleBLE(characteristic.UUID)].readPending = YES;
+        [self.peripheral readValueForCharacteristic:characteristic];
+    }
+
+    // Wait for the read to complete for up to 1 second.
+    NSDate* endDate = [NSDate dateWithTimeInterval:0.5 sinceDate:NSDate.now];
+    BOOL readPending = YES;
+    while (readPending && [NSDate.now compare:endDate] == NSOrderedAscending) {
+        [NSThread sleepForTimeInterval:0.001];
+        @synchronized(self) {
+            readPending = characteristic_extras_[uuidToSimpleBLE(characteristic.UUID)].readPending;
+        }
+    }
+
+    if (readPending) {
+        // TODO: Raise an exception.
+        NSLog(@"Characteristic %@ could not be read", characteristic.UUID);
+        return SimpleBLE::ByteStrArray();
+    }
+
+    return SimpleBLE::ByteStrArray((const char*)characteristic.value.bytes, characteristic.value.length);
+}
+
+- (SimpleBLE::ByteArray)readBytes:(NSString*)service_uuid characteristic_uuid:(NSString*)characteristic_uuid {
     std::pair<CBService*, CBCharacteristic*> serviceAndCharacteristic = [self findServiceAndCharacteristic:service_uuid
                                                                                        characteristic_uuid:characteristic_uuid];
 
@@ -180,10 +219,10 @@ typedef struct {
     }
 
     // Wait for the read to complete for up to 1 second.
-    NSDate* endDate = [NSDate dateWithTimeInterval:1.0 sinceDate:NSDate.now];
+    NSDate* endDate = [NSDate dateWithTimeInterval:0.5 sinceDate:NSDate.now];
     BOOL readPending = YES;
     while (readPending && [NSDate.now compare:endDate] == NSOrderedAscending) {
-        [NSThread sleepForTimeInterval:0.01];
+        [NSThread sleepForTimeInterval:0.001];
         @synchronized(self) {
             readPending = characteristic_extras_[uuidToSimpleBLE(characteristic.UUID)].readPending;
         }
@@ -195,7 +234,9 @@ typedef struct {
         return SimpleBLE::ByteArray();
     }
 
-    return SimpleBLE::ByteArray((const char*)characteristic.value.bytes, characteristic.value.length);
+    SimpleBLE::ByteArray r(characteristic.value.length);
+    std::copy(characteristic.value.bytes, characteristic.value.bytes + characteristic.value.length, r.begin());
+    return r;
 }
 
 - (void)writeRequest:(NSString*)service_uuid characteristic_uuid:(NSString*)characteristic_uuid payload:(NSData*)payload {
@@ -223,10 +264,10 @@ typedef struct {
     }
 
     // Wait for the read to complete for up to 1 second.
-    NSDate* endDate = [NSDate dateWithTimeInterval:1.0 sinceDate:NSDate.now];
+    NSDate* endDate = [NSDate dateWithTimeInterval:0.5 sinceDate:NSDate.now];
     BOOL writePending = YES;
     while (writePending && [NSDate.now compare:endDate] == NSOrderedAscending) {
-        [NSThread sleepForTimeInterval:0.01];
+        [NSThread sleepForTimeInterval:0.001];
         @synchronized(self) {
             writePending = characteristic_extras_[uuidToSimpleBLE(characteristic.UUID)].writePending;
         }
@@ -265,7 +306,7 @@ typedef struct {
 
 - (void)notify:(NSString*)service_uuid
     characteristic_uuid:(NSString*)characteristic_uuid
-               callback:(std::function<void(SimpleBLE::ByteArray)>)callback {
+               callback:(std::function<void(SimpleBLE::ByteStrArray)>)callback {
     std::pair<CBService*, CBCharacteristic*> serviceAndCharacteristic = [self findServiceAndCharacteristic:service_uuid
                                                                                        characteristic_uuid:characteristic_uuid];
 
@@ -282,9 +323,39 @@ typedef struct {
     }
 
     // Wait for the update to complete for up to 1 second.
-    NSDate* endDate = [NSDate dateWithTimeInterval:1.0 sinceDate:NSDate.now];
+    NSDate* endDate = [NSDate dateWithTimeInterval:0.5 sinceDate:NSDate.now];
     while (!characteristic.isNotifying && [NSDate.now compare:endDate] == NSOrderedAscending) {
-        [NSThread sleepForTimeInterval:0.01];
+        [NSThread sleepForTimeInterval:0.001];
+    }
+
+    if (!characteristic.isNotifying) {
+        // TODO: Raise an exception.
+        NSLog(@"Could not enable notifications for characteristic %@", characteristic.UUID);
+    }
+}
+
+- (void)notifyBytes:(NSString*)service_uuid
+    characteristic_uuid:(NSString*)characteristic_uuid
+               callback:(std::function<void(SimpleBLE::ByteArray)>)callback {
+    std::pair<CBService*, CBCharacteristic*> serviceAndCharacteristic = [self findServiceAndCharacteristic:service_uuid
+                                                                                       characteristic_uuid:characteristic_uuid];
+
+    if (serviceAndCharacteristic.first == nil || serviceAndCharacteristic.second == nil) {
+        // TODO: Raise an exception.
+        NSLog(@"Could not find service and characteristic.");
+    }
+
+    CBCharacteristic* characteristic = serviceAndCharacteristic.second;
+
+    @synchronized(self) {
+        characteristic_extras_[uuidToSimpleBLE(characteristic.UUID)].valueChangedCallbackBytes = callback;
+        [self.peripheral setNotifyValue:YES forCharacteristic:characteristic];
+    }
+
+    // Wait for the update to complete for up to 1 second.
+    NSDate* endDate = [NSDate dateWithTimeInterval:0.5 sinceDate:NSDate.now];
+    while (!characteristic.isNotifying && [NSDate.now compare:endDate] == NSOrderedAscending) {
+        [NSThread sleepForTimeInterval:0.001];
     }
 
     if (!characteristic.isNotifying) {
@@ -295,8 +366,14 @@ typedef struct {
 
 - (void)indicate:(NSString*)service_uuid
     characteristic_uuid:(NSString*)characteristic_uuid
-               callback:(std::function<void(SimpleBLE::ByteArray)>)callback {
+               callback:(std::function<void(SimpleBLE::ByteStrArray)>)callback {
     [self notify:service_uuid characteristic_uuid:characteristic_uuid callback:callback];
+}
+
+- (void)indicateBytes:(NSString*)service_uuid
+    characteristic_uuid:(NSString*)characteristic_uuid
+               callback:(std::function<void(SimpleBLE::ByteArray)>)callback {
+    [self notifyBytes:service_uuid characteristic_uuid:characteristic_uuid callback:callback];
 }
 
 - (void)unsubscribe:(NSString*)service_uuid characteristic_uuid:(NSString*)characteristic_uuid {
@@ -313,9 +390,9 @@ typedef struct {
         [self.peripheral setNotifyValue:NO forCharacteristic:characteristic];
 
         // Wait for the update to complete for up to 1 second.
-        NSDate* endDate = [NSDate dateWithTimeInterval:1.0 sinceDate:NSDate.now];
+        NSDate* endDate = [NSDate dateWithTimeInterval:0.5 sinceDate:NSDate.now];
         while (characteristic.isNotifying && [NSDate.now compare:endDate] == NSOrderedAscending) {
-            [NSThread sleepForTimeInterval:0.01];
+            [NSThread sleepForTimeInterval:0.001];
         }
 
         if (characteristic.isNotifying) {
@@ -325,6 +402,7 @@ typedef struct {
             // Only delete the callback if the characteristic is no longer notifying, to
             // prevent triggering a segfault.
             characteristic_extras_[uuidToSimpleBLE(characteristic.UUID)].valueChangedCallback = nil;
+            characteristic_extras_[uuidToSimpleBLE(characteristic.UUID)].valueChangedCallbackBytes = nil;
         }
     }
 }
@@ -414,8 +492,14 @@ typedef struct {
 
         // Check if the characteristic has a callback and call it
         if (characteristic_extras_[uuidToSimpleBLE(characteristic.UUID)].valueChangedCallback != nil) {
-            SimpleBLE::ByteArray received_data((const char*)characteristic.value.bytes, characteristic.value.length);
+            SimpleBLE::ByteStrArray received_data((const char*)characteristic.value.bytes, characteristic.value.length);
             characteristic_extras_[uuidToSimpleBLE(characteristic.UUID)].valueChangedCallback(received_data);
+        }
+
+        if (characteristic_extras_[uuidToSimpleBLE(characteristic.UUID)].valueChangedCallbackBytes != nil) {
+            SimpleBLE::ByteArray received_data(characteristic.value.length);
+            std::memcpy(received_data.data(), characteristic.value.bytes, characteristic.value.length);
+            characteristic_extras_[uuidToSimpleBLE(characteristic.UUID)].valueChangedCallbackBytes(received_data);
         }
     }
 }

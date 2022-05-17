@@ -44,7 +44,7 @@ AdapterBase::AdapterBase(std::string device_id)
             auto manufacturer_data = args.Advertisement().ManufacturerData();
             for (auto& item : manufacturer_data) {
                 uint16_t company_id = item.CompanyId();
-                ByteArray manufacturer_data_buffer = ibuffer_to_bytearray(item.Data());
+                ByteStrArray manufacturer_data_buffer = ibuffer_to_bytearray(item.Data());
                 data.manufacturer_data[company_id] = manufacturer_data_buffer;
             }
 
