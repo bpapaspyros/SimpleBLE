@@ -100,6 +100,11 @@ if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
         ${CMAKE_CURRENT_SOURCE_DIR}/src/linux/PeripheralBase.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/linux/Bluez.cpp
     )
+
+    if(NOT ${STANDALONE})
+        set(SIMPLEBLUEZ_INCLUDES ${SIMPLEBLUEZ_INCLUDES} PARENT_SCOPE)
+    endif()
+
 elseif (CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows")
     message(STATUS "Windows Host Detected")
     if(CMAKE_GENERATOR_PLATFORM MATCHES "^[Ww][Ii][Nn]32$")
