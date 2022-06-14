@@ -235,7 +235,7 @@ typedef struct {
     }
 
     SimpleBLE::ByteArray r(characteristic.value.length);
-    std::copy(characteristic.value.bytes, characteristic.value.bytes + characteristic.value.length, r.begin());
+    std::copy((uint8_t*)characteristic.value.bytes, (uint8_t*)characteristic.value.bytes + characteristic.value.length, r.begin());
     return r;
 }
 
