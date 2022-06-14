@@ -35,6 +35,7 @@ set(SIMPLEBLE_USER_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 set(
     SRC_SIMPLEBLE_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/Adapter.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/AdapterSync.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/Peripheral.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/Exceptions.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/AdapterBuilder.cpp
@@ -76,7 +77,6 @@ if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
 
         # Append additional link options
         list(APPEND LINK_OPTIONS -fsanitize=thread)
-
     endif()
 
     set(SIMPLEBLUEZ_SANITIZE ${SIMPLEBLE_SANITIZE})
@@ -105,8 +105,9 @@ if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
         set(SIMPLEBLUEZ_INCLUDES ${SIMPLEBLUEZ_INCLUDES} PARENT_SCOPE)
     endif()
 
-elseif (CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows")
+elseif(CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows")
     message(STATUS "Windows Host Detected")
+
     if(CMAKE_GENERATOR_PLATFORM MATCHES "^[Ww][Ii][Nn]32$")
         set(WINDOWS_TARGET_ARCH x86)
     elseif(CMAKE_GENERATOR_PLATFORM MATCHES "^[Xx]64$")
@@ -114,18 +115,21 @@ elseif (CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows")
     endif()
 
     set(WINVERSION_CODE 0x0A00) # Selected Windows 10 based on https://docs.microsoft.com/en-us/cpp/porting/modifying-winver-and-win32-winnt
-    
+
     # Add all the special definitions that need to be added for the program to properly compile on windows.
-    
+
     # /D_WIN32_WINNT -> Specifies the minimum version of Windows that the application is compatible with.
     list(APPEND COMPILE_DEFINITIONS "/D_WIN32_WINNT=${WINVERSION_CODE}")
+
     # /D_USE_MATH_DEFINES -> Specifies that the math.h header file should be included.
     list(APPEND COMPILE_DEFINITIONS "/D_USE_MATH_DEFINES")
-    
+
     # /Gd -> Use __cdecl as the default calling convention. https://docs.microsoft.com/en-us/cpp/cpp/cdecl
     list(APPEND COMPILE_OPTIONS "/Gd")
+
     # /WX -> Treats all warnings as errors.
     list(APPEND COMPILE_OPTIONS "/WX")
+
     # /W1 -> Use the lowest level of warnings, as there are some unsafe functions that MSVC doesn't like.
     # TODO: This should be removed once the warnings are fixed.
     list(APPEND COMPILE_OPTIONS "/W1")
@@ -244,7 +248,6 @@ target_link_libraries(simpleble-c-static PUBLIC simpleble-static)
 target_link_libraries(simpleble-c PUBLIC simpleble-static)
 
 # Append any compilation flags to each specific target
-
 foreach(DEFINITION ${COMPILE_DEFINITIONS})
     target_compile_definitions(simpleble-static PRIVATE ${DEFINITION})
     target_compile_definitions(simpleble PRIVATE ${DEFINITION})
