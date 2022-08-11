@@ -1,6 +1,7 @@
 #pragma once
 
 #include <simpleble/Exceptions.h>
+#include <simpleble/Service.h>
 #include <simpleble/Types.h>
 
 #include "AdapterBaseTypes.h"
@@ -15,6 +16,8 @@ class PeripheralBase {
   public:
     PeripheralBase(void* opaque_peripheral, void* opaque_adapter, advertising_data_t advertising_data);
     ~PeripheralBase();
+
+    void* underlying() const;
 
     std::string identifier();
     BluetoothAddress address();
@@ -45,6 +48,11 @@ class PeripheralBase {
     void indicate(BluetoothUUID const& service, BluetoothUUID const& characteristic,
                   std::function<void(ByteArray payload)> callback);
     void unsubscribe(BluetoothUUID const& service, BluetoothUUID const& characteristic);
+
+    ByteArray read(BluetoothUUID const& service, BluetoothUUID const& characteristic, BluetoothUUID const& descriptor);
+    void write(BluetoothUUID const& service, BluetoothUUID const& characteristic, BluetoothUUID const& descriptor,
+               ByteArray const& data);
+    // clang-format on
 
     void set_callback_on_connected(std::function<void()> on_connected);
     void set_callback_on_disconnected(std::function<void()> on_disconnected);

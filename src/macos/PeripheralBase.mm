@@ -1,6 +1,8 @@
 #import "PeripheralBase.h"
 #import "PeripheralBaseMacOS.h"
 
+#import "CommonUtils.h"
+
 #include <iostream>
 
 using namespace SimpleBLE;
@@ -27,6 +29,12 @@ PeripheralBase::~PeripheralBase() {
     internal = nil;
 }
 
+void* PeripheralBase::underlying() const {
+    PeripheralBaseMacOS* internal = (__bridge PeripheralBaseMacOS*)opaque_internal_;
+
+    return [internal underlying];
+}
+
 std::string PeripheralBase::identifier() {
     PeripheralBaseMacOS* internal = (__bridge PeripheralBaseMacOS*)opaque_internal_;
     return std::string([[internal identifier] UTF8String]);
@@ -48,9 +56,8 @@ void PeripheralBase::update_advertising_data(advertising_data_t advertising_data
 void PeripheralBase::connect() {
     PeripheralBaseMacOS* internal = (__bridge PeripheralBaseMacOS*)opaque_internal_;
     [internal connect];
-    if (callback_on_connected_) {
-        callback_on_connected_();
-    }
+
+    SAFE_CALLBACK_CALL(this->callback_on_connected_);
 }
 
 void PeripheralBase::disconnect() {
@@ -58,9 +65,9 @@ void PeripheralBase::disconnect() {
 
     manual_disconnect_triggered_ = true;
     [internal disconnect];
-    if (callback_on_disconnected_) {
-        callback_on_disconnected_();
-    }
+
+    SAFE_CALLBACK_CALL(this->callback_on_disconnected_);
+
     manual_disconnect_triggered_ = false;
 }
 
@@ -75,7 +82,7 @@ bool PeripheralBase::is_paired() { throw Exception::OperationNotSupported(); }
 
 void PeripheralBase::unpair() { throw Exception::OperationNotSupported(); }
 
-std::vector<BluetoothService> PeripheralBase::services() {
+std::vector<Service> PeripheralBase::services() {
     PeripheralBaseMacOS* internal = (__bridge PeripheralBaseMacOS*)opaque_internal_;
     return [internal getServices];
 }
@@ -182,6 +189,28 @@ void PeripheralBase::unsubscribe(BluetoothUUID const& service, BluetoothUUID con
     NSString* service_uuid = [NSString stringWithCString:service.c_str() encoding:NSString.defaultCStringEncoding];
     NSString* characteristic_uuid = [NSString stringWithCString:characteristic.c_str() encoding:NSString.defaultCStringEncoding];
     [internal unsubscribe:service_uuid characteristic_uuid:characteristic_uuid];
+}
+
+ByteArray PeripheralBase::read(BluetoothUUID const& service, BluetoothUUID const& characteristic, BluetoothUUID const& descriptor) {
+    PeripheralBaseMacOS* internal = (__bridge PeripheralBaseMacOS*)opaque_internal_;
+
+    NSString* service_uuid = [NSString stringWithCString:service.c_str() encoding:NSString.defaultCStringEncoding];
+    NSString* characteristic_uuid = [NSString stringWithCString:characteristic.c_str() encoding:NSString.defaultCStringEncoding];
+    NSString* descriptor_uuid = [NSString stringWithCString:descriptor.c_str() encoding:NSString.defaultCStringEncoding];
+
+    return [internal read:service_uuid characteristic_uuid:characteristic_uuid descriptor_uuid:descriptor_uuid];
+}
+
+void PeripheralBase::write(BluetoothUUID const& service, BluetoothUUID const& characteristic, BluetoothUUID const& descriptor,
+                           ByteArray const& data) {
+    PeripheralBaseMacOS* internal = (__bridge PeripheralBaseMacOS*)opaque_internal_;
+
+    NSString* service_uuid = [NSString stringWithCString:service.c_str() encoding:NSString.defaultCStringEncoding];
+    NSString* characteristic_uuid = [NSString stringWithCString:characteristic.c_str() encoding:NSString.defaultCStringEncoding];
+    NSString* descriptor_uuid = [NSString stringWithCString:descriptor.c_str() encoding:NSString.defaultCStringEncoding];
+    NSData* payload = [NSData dataWithBytes:(void*)data.c_str() length:data.size()];
+
+    [internal write:service_uuid characteristic_uuid:characteristic_uuid descriptor_uuid:descriptor_uuid payload:payload];
 }
 
 void PeripheralBase::set_callback_on_connected(std::function<void()> on_connected) {

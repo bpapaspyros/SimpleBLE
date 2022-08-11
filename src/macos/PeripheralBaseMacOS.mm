@@ -1,7 +1,10 @@
 #import "PeripheralBaseMacOS.h"
+#import "CharacteristicBuilder.h"
+#import "DescriptorBuilder.h"
+#import "ServiceBuilder.h"
 #import "Utils.h"
 
-#include <iostream>
+#import <simpleble/Exceptions.h>
 
 typedef struct {
     BOOL readPending;
@@ -41,6 +44,10 @@ typedef struct {
     return self;
 }
 
+- (void*)underlying {
+    return (__bridge void*)self.peripheral;
+}
+
 - (NSString*)identifier {
     if (self.peripheral.name != nil) {
         return [self.peripheral.name copy];
@@ -67,10 +74,7 @@ typedef struct {
         }
 
         if (self.peripheral.state != CBPeripheralStateConnected) {
-            // If the connection failed, raise an exception.
-            // TODO: Raise an exception.
-            NSLog(@"Connection failed.");
-            return;
+            throw SimpleBLE::Exception::OperationFailed();
         }
 
         [self.peripheral discoverServices:nil];
@@ -84,9 +88,8 @@ typedef struct {
 
         if (self.peripheral.services == nil) {
             // If services could not be discovered, raise an exception.
-            // TODO: Raise an exception.
             NSLog(@"Services could not be discovered.");
-            return;
+            throw SimpleBLE::Exception::OperationFailed();
         }
 
         // For each service found, discover characteristics.
@@ -102,15 +105,38 @@ typedef struct {
 
             if (service.characteristics == nil) {
                 // If characteristics could not be discovered, raise an exception.
-                // TODO: Raise an exception.
                 NSLog(@"Characteristics could not be discovered for service %@", service.UUID);
+                throw SimpleBLE::Exception::OperationFailed();
             }
 
-            // For each characteristic, create the associated extra properties.
+            // For each characteristic, create the associated extra properties and discover descriptors.
             for (CBCharacteristic* characteristic in service.characteristics) {
-                characteristic_extras_t extras;
-                extras.readPending = NO;
-                characteristic_extras_[uuidToSimpleBLE(characteristic.UUID)] = extras;
+                [self.peripheral discoverDescriptorsForCharacteristic:characteristic];
+
+                // Wait for descriptors to be discovered for up to 1 second.
+                endDate = [NSDate dateWithTimeInterval:1.0 sinceDate:NSDate.now];
+                while (characteristic.descriptors == nil && [NSDate.now compare:endDate] == NSOrderedAscending) {
+                    [NSThread sleepForTimeInterval:0.01];
+                }
+
+                if (characteristic.descriptors == nil) {
+                    // If characteristics could not be discovered, raise an exception.
+                    NSLog(@"Descriptors could not be discovered for characteristic %@", characteristic.UUID);
+                    throw SimpleBLE::Exception::OperationFailed();
+                }
+
+                characteristic_extras_t characteristic_extra;
+                characteristic_extra.readPending = NO;
+                characteristic_extra.writePending = NO;
+
+                for (CBDescriptor* descriptor in characteristic.descriptors) {
+                    descriptor_extras_t descriptor_extra;
+                    descriptor_extra.readPending = NO;
+                    descriptor_extra.writePending = NO;
+                    characteristic_extra.descriptor_extras[uuidToSimpleBLE(descriptor.UUID)] = descriptor_extra;
+                }
+
+                characteristic_extras_[uuidToSimpleBLE(characteristic.UUID)] = characteristic_extra;
             }
         }
     }
@@ -131,9 +157,8 @@ typedef struct {
 
         if (self.peripheral.state != CBPeripheralStateDisconnected) {
             // If the disconnection failed, raise an exception.
-            // TODO: Raise an exception.
             NSLog(@"Disconnection failed.");
-            return;
+            throw SimpleBLE::Exception::OperationFailed();
         }
     }
 }
@@ -142,27 +167,23 @@ typedef struct {
     return self.peripheral.state == CBPeripheralStateConnected;
 }
 
-- (std::vector<SimpleBLE::BluetoothService>)getServices {
-    // NOTE: We might want to return NSUUIDs in this function and convert them to
-    // strings in the PeripheralBase class.
-
-    std::vector<SimpleBLE::BluetoothService> services;
-
-    // For each service, load the UUID and the corresponding characteristics.
+- (std::vector<SimpleBLE::Service>)getServices {
+    std::vector<SimpleBLE::Service> service_list;
     for (CBService* service in self.peripheral.services) {
-        SimpleBLE::BluetoothService bluetoothService;
-        bluetoothService.uuid = uuidToSimpleBLE(service.UUID);
-
-        // Load all the characteristics for this service.
-        NSArray<CBCharacteristic*>* characteristics = service.characteristics;
-        for (CBCharacteristic* characteristic in characteristics) {
-            bluetoothService.characteristics.push_back(uuidToSimpleBLE(characteristic.UUID));
+        // Build the list of characteristics for the service.
+        std::vector<SimpleBLE::Characteristic> characteristic_list;
+        for (CBCharacteristic* characteristic in service.characteristics) {
+            // Build the list of descriptors for the characteristic.
+            std::vector<SimpleBLE::Descriptor> descriptor_list;
+            for (CBDescriptor* descriptor in characteristic.descriptors) {
+                descriptor_list.push_back(SimpleBLE::DescriptorBuilder(uuidToSimpleBLE(descriptor.UUID)));
+            }
+            characteristic_list.push_back(SimpleBLE::CharacteristicBuilder(uuidToSimpleBLE(characteristic.UUID), descriptor_list));
         }
-
-        services.push_back(bluetoothService);
+        service_list.push_back(SimpleBLE::ServiceBuilder(uuidToSimpleBLE(service.UUID), characteristic_list));
     }
 
-    return services;
+    return service_list;
 }
 
 - (SimpleBLE::ByteStrArray)read:(NSString*)service_uuid characteristic_uuid:(NSString*)characteristic_uuid {
@@ -205,12 +226,6 @@ typedef struct {
     std::pair<CBService*, CBCharacteristic*> serviceAndCharacteristic = [self findServiceAndCharacteristic:service_uuid
                                                                                        characteristic_uuid:characteristic_uuid];
 
-    if (serviceAndCharacteristic.first == nil || serviceAndCharacteristic.second == nil) {
-        // TODO: Raise an exception.
-        NSLog(@"Could not find service and characteristic.");
-        return SimpleBLE::ByteArray();
-    }
-
     CBCharacteristic* characteristic = serviceAndCharacteristic.second;
 
     @synchronized(self) {
@@ -229,9 +244,8 @@ typedef struct {
     }
 
     if (readPending) {
-        // TODO: Raise an exception.
         NSLog(@"Characteristic %@ could not be read", characteristic.UUID);
-        return SimpleBLE::ByteArray();
+        throw SimpleBLE::Exception::OperationFailed();
     }
 
     SimpleBLE::ByteArray r(characteristic.value.length);
@@ -243,19 +257,12 @@ typedef struct {
     std::pair<CBService*, CBCharacteristic*> serviceAndCharacteristic = [self findServiceAndCharacteristic:service_uuid
                                                                                        characteristic_uuid:characteristic_uuid];
 
-    if (serviceAndCharacteristic.first == nil || serviceAndCharacteristic.second == nil) {
-        // TODO: Raise an exception.
-        NSLog(@"Could not find service and characteristic.");
-        return;
-    }
-
     CBCharacteristic* characteristic = serviceAndCharacteristic.second;
 
     // Check that the characteristic supports this feature.
     if ((characteristic.properties & CBCharacteristicPropertyWrite) == 0) {
-        // TODO: Raise an exception.
         NSLog(@"Characteristic does not support write with response.");
-        return;
+        throw SimpleBLE::Exception::OperationNotSupported();
     }
 
     @synchronized(self) {
@@ -274,8 +281,8 @@ typedef struct {
     }
 
     if (writePending) {
-        // TODO: Raise an exception.
         NSLog(@"Characteristic %@ could not be written", characteristic.UUID);
+        throw SimpleBLE::Exception::OperationFailed();
     }
 }
 
@@ -283,19 +290,12 @@ typedef struct {
     std::pair<CBService*, CBCharacteristic*> serviceAndCharacteristic = [self findServiceAndCharacteristic:service_uuid
                                                                                        characteristic_uuid:characteristic_uuid];
 
-    if (serviceAndCharacteristic.first == nil || serviceAndCharacteristic.second == nil) {
-        // TODO: Raise an exception.
-        NSLog(@"Could not find service and characteristic.");
-        return;
-    }
-
     CBCharacteristic* characteristic = serviceAndCharacteristic.second;
 
     // Check that the characteristic supports this feature.
     if ((characteristic.properties & CBCharacteristicPropertyWriteWithoutResponse) == 0) {
-        // TODO: Raise an exception.
         NSLog(@"Characteristic does not support write without response.");
-        return;
+        throw SimpleBLE::Exception::OperationNotSupported();
     }
 
     // NOTE: This write is unacknowledged.
@@ -309,11 +309,6 @@ typedef struct {
                callback:(std::function<void(SimpleBLE::ByteStrArray)>)callback {
     std::pair<CBService*, CBCharacteristic*> serviceAndCharacteristic = [self findServiceAndCharacteristic:service_uuid
                                                                                        characteristic_uuid:characteristic_uuid];
-
-    if (serviceAndCharacteristic.first == nil || serviceAndCharacteristic.second == nil) {
-        // TODO: Raise an exception.
-        NSLog(@"Could not find service and characteristic.");
-    }
 
     CBCharacteristic* characteristic = serviceAndCharacteristic.second;
 
@@ -359,8 +354,8 @@ typedef struct {
     }
 
     if (!characteristic.isNotifying) {
-        // TODO: Raise an exception.
         NSLog(@"Could not enable notifications for characteristic %@", characteristic.UUID);
+        throw SimpleBLE::Exception::OperationFailed();
     }
 }
 
@@ -380,11 +375,6 @@ typedef struct {
     std::pair<CBService*, CBCharacteristic*> serviceAndCharacteristic = [self findServiceAndCharacteristic:service_uuid
                                                                                        characteristic_uuid:characteristic_uuid];
 
-    if (serviceAndCharacteristic.first == nil || serviceAndCharacteristic.second == nil) {
-        // TODO: Raise an exception.
-        NSLog(@"Could not find service and characteristic.");
-    }
-
     @synchronized(self) {
         CBCharacteristic* characteristic = serviceAndCharacteristic.second;
         [self.peripheral setNotifyValue:NO forCharacteristic:characteristic];
@@ -396,14 +386,85 @@ typedef struct {
         }
 
         if (characteristic.isNotifying) {
-            // TODO: Raise an exception.
             NSLog(@"Could not disable notifications for characteristic %@", characteristic.UUID);
+            throw SimpleBLE::Exception::OperationFailed();
         } else {
             // Only delete the callback if the characteristic is no longer notifying, to
             // prevent triggering a segfault.
             characteristic_extras_[uuidToSimpleBLE(characteristic.UUID)].valueChangedCallback = nil;
             characteristic_extras_[uuidToSimpleBLE(characteristic.UUID)].valueChangedCallbackBytes = nil;
         }
+    }
+}
+
+- (SimpleBLE::ByteArray)read:(NSString*)service_uuid
+         characteristic_uuid:(NSString*)characteristic_uuid
+             descriptor_uuid:(NSString*)descriptor_uuid {
+    std::pair<CBService*, CBCharacteristic*> serviceAndCharacteristic = [self findServiceAndCharacteristic:service_uuid
+                                                                                       characteristic_uuid:characteristic_uuid];
+
+    CBCharacteristic* characteristic = serviceAndCharacteristic.second;
+
+    CBDescriptor* descriptor = [self findDescriptor:descriptor_uuid characteristic:characteristic];
+
+    @synchronized(self) {
+        characteristic_extras_[uuidToSimpleBLE(characteristic.UUID)].descriptor_extras[uuidToSimpleBLE(descriptor.UUID)].readPending = YES;
+        [self.peripheral readValueForDescriptor:descriptor];
+    }
+
+    // Wait for the read to complete for up to 1 second.
+    NSDate* endDate = [NSDate dateWithTimeInterval:1.0 sinceDate:NSDate.now];
+    BOOL readPending = YES;
+    while (readPending && [NSDate.now compare:endDate] == NSOrderedAscending) {
+        [NSThread sleepForTimeInterval:0.01];
+        @synchronized(self) {
+            readPending = characteristic_extras_[uuidToSimpleBLE(characteristic.UUID)]
+                              .descriptor_extras[uuidToSimpleBLE(descriptor.UUID)]
+                              .readPending;
+        }
+    }
+
+    if (readPending) {
+        NSLog(@"Descriptor %@ could not be read", descriptor.UUID);
+        throw SimpleBLE::Exception::OperationFailed();
+    }
+
+    const char* bytes = (const char*)[descriptor.value bytes];
+
+    return SimpleBLE::ByteArray(bytes, [descriptor.value length]);
+}
+
+- (void)write:(NSString*)service_uuid
+    characteristic_uuid:(NSString*)characteristic_uuid
+        descriptor_uuid:(NSString*)descriptor_uuid
+                payload:(NSData*)payload {
+    std::pair<CBService*, CBCharacteristic*> serviceAndCharacteristic = [self findServiceAndCharacteristic:service_uuid
+                                                                                       characteristic_uuid:characteristic_uuid];
+
+    CBCharacteristic* characteristic = serviceAndCharacteristic.second;
+
+    CBDescriptor* descriptor = [self findDescriptor:descriptor_uuid characteristic:characteristic];
+
+    @synchronized(self) {
+        characteristic_extras_[uuidToSimpleBLE(characteristic.UUID)].descriptor_extras[uuidToSimpleBLE(descriptor.UUID)].writePending = YES;
+        [self.peripheral writeValue:payload forDescriptor:descriptor];
+    }
+
+    // Wait for the read to complete for up to 1 second.
+    NSDate* endDate = [NSDate dateWithTimeInterval:1.0 sinceDate:NSDate.now];
+    BOOL writePending = YES;
+    while (writePending && [NSDate.now compare:endDate] == NSOrderedAscending) {
+        [NSThread sleepForTimeInterval:0.01];
+        @synchronized(self) {
+            writePending = characteristic_extras_[uuidToSimpleBLE(characteristic.UUID)]
+                               .descriptor_extras[uuidToSimpleBLE(descriptor.UUID)]
+                               .writePending;
+        }
+    }
+
+    if (writePending) {
+        NSLog(@"Descriptor %@ could not be written", descriptor.UUID);
+        throw SimpleBLE::Exception::OperationFailed();
     }
 }
 
@@ -418,16 +479,14 @@ typedef struct {
         }
     }
 
-    // TODO Raise an exception.
-    return nil;
+    throw SimpleBLE::Exception::ServiceNotFound([uuid UTF8String]);
 }
 
 - (CBCharacteristic*)findCharacteristic:(NSString*)uuid service:(CBService*)service {
     CBUUID* characteristic_uuid = [CBUUID UUIDWithString:uuid];
 
     if (service == nil) {
-        // TODO Raise an exception.
-        return nil;
+        throw SimpleBLE::Exception::BaseException("Invalid service parameter.");
     }
 
     for (CBCharacteristic* characteristic in service.characteristics) {
@@ -436,8 +495,19 @@ typedef struct {
         }
     }
 
-    // TODO Raise an exception.
-    return nil;
+    throw SimpleBLE::Exception::CharacteristicNotFound([uuid UTF8String]);
+}
+
+- (CBDescriptor*)findDescriptor:(NSString*)uuid characteristic:(CBCharacteristic*)characteristic {
+    CBUUID* descriptor_uuid = [CBUUID UUIDWithString:uuid];
+
+    for (CBDescriptor* descriptor in characteristic.descriptors) {
+        if ([descriptor.UUID isEqual:descriptor_uuid]) {
+            return descriptor;
+        }
+    }
+
+    throw SimpleBLE::Exception::DescriptorNotFound([uuid UTF8String]);
 }
 
 - (std::pair<CBService*, CBCharacteristic*>)findServiceAndCharacteristic:(NSString*)service_uuid
@@ -476,10 +546,18 @@ typedef struct {
     }
 }
 
+- (void)peripheral:(CBPeripheral*)peripheral
+    didDiscoverDescriptorsForCharacteristic:(CBCharacteristic*)characteristic
+                                      error:(NSError*)error {
+    if (error != nil) {
+        NSLog(@"Error while discovering descriptors for characteristic %@: %@\n", characteristic.UUID, error);
+    }
+}
+
 - (void)peripheral:(CBPeripheral*)peripheral didUpdateValueForCharacteristic:(CBCharacteristic*)characteristic error:(NSError*)error {
     // NSLog(@"Updated value for characteristic: %@", characteristic.UUID);
     if (error != nil) {
-        NSLog(@"Error: %@\n", error);
+        NSLog(@"Characteristic value update error: %@\n", error);
         return;
     }
 
@@ -518,14 +596,45 @@ typedef struct {
 - (void)peripheral:(CBPeripheral*)peripheral
     didUpdateNotificationStateForCharacteristic:(CBCharacteristic*)characteristic
                                           error:(NSError*)error {
-    NSLog(@"Updated notification state for characteristic: %@", characteristic.UUID);
     if (error != nil) {
-        NSLog(@"Error: %@\n", error);
+        NSLog(@"Notification state update error: %@\n", error);
     }
 }
 
 - (void)peripheralIsReadyToSendWriteWithoutResponse:(CBPeripheral*)peripheral {
     NSLog(@"Peripheral ready to send: %@", peripheral);
+}
+
+- (void)peripheral:(CBPeripheral*)peripheral didUpdateValueForDescriptor:(CBDescriptor*)descriptor error:(NSError*)error {
+    if (error != nil) {
+        NSLog(@"Descriptor value update error: %@\n", error);
+        return;
+    }
+
+    std::string characteristic_uuid = uuidToSimpleBLE(descriptor.characteristic.UUID);
+    std::string descriptor_uuid = uuidToSimpleBLE(descriptor.UUID);
+
+    @synchronized(self) {
+        // If the descriptor still had a pending read, clear the flag and return
+        if (characteristic_extras_[characteristic_uuid].descriptor_extras[descriptor_uuid].readPending) {
+            characteristic_extras_[characteristic_uuid].descriptor_extras[descriptor_uuid].readPending = NO;
+            return;
+        }
+    }
+}
+
+- (void)peripheral:(CBPeripheral*)peripheral didWriteValueForDescriptor:(CBDescriptor*)descriptor error:(NSError*)error {
+    if (error != nil) {
+        NSLog(@"Descriptor value write error: %@\n", error);
+        return;
+    }
+
+    std::string characteristic_uuid = uuidToSimpleBLE(descriptor.characteristic.UUID);
+    std::string descriptor_uuid = uuidToSimpleBLE(descriptor.UUID);
+
+    @synchronized(self) {
+        characteristic_extras_[characteristic_uuid].descriptor_extras[descriptor_uuid].writePending = NO;
+    }
 }
 
 @end

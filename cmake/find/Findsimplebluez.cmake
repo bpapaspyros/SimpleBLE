@@ -1,13 +1,13 @@
 include(FetchContent)
 
-if (SIMPLEBLUEZ_VENDORIZE)
-
+if(SIMPLEBLUEZ_VENDORIZE)
     # Load default parameters passed in through the command line.
     if(NOT SIMPLEBLUEZ_GIT_REPOSITORY)
         set(SIMPLEBLUEZ_GIT_REPOSITORY "git@github.com:bpapaspyros/SimpleBluez.git")
     endif()
+
     if(NOT SIMPLEBLUEZ_GIT_TAG)
-        set(SIMPLEBLUEZ_GIT_TAG "dev_linux_compat") # TODO: Switch to the latest SimpleBluez release once done.
+        set(SIMPLEBLUEZ_GIT_TAG "feat_threadsafe")
     endif()
 
     if(NOT SIMPLEBLUEZ_LOCAL_PATH)
@@ -23,6 +23,7 @@ if (SIMPLEBLUEZ_VENDORIZE)
         # custom logic between the FetchContent_Populate() and add_subdirectory()
         # calls.
         FetchContent_GetProperties(simplebluez)
+
         if(NOT simplebluez_POPULATED)
             FetchContent_Populate(simplebluez)
             list(APPEND CMAKE_MODULE_PATH "${simplebluez_SOURCE_DIR}/cmake/find")
@@ -41,5 +42,4 @@ if (SIMPLEBLUEZ_VENDORIZE)
     # found in the documentation of find_package() and
     # https://cmake.org/cmake/help/latest/manual/cmake-developer.7.html
     set(simplebluez_FOUND 1)
-
 endif()

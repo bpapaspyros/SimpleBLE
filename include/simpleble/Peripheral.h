@@ -8,6 +8,7 @@
 #include <vector>
 
 #include <simpleble/Exceptions.h>
+#include <simpleble/Service.h>
 #include <simpleble/Types.h>
 
 namespace SimpleBLE {
@@ -20,6 +21,7 @@ class Peripheral {
     virtual ~Peripheral() = default;
 
     bool initialized() const;
+    void* underlying() const;
 
     std::string identifier();
     BluetoothAddress address();
@@ -32,7 +34,7 @@ class Peripheral {
     bool is_paired();
     void unpair();
 
-    std::vector<BluetoothService> services();
+    std::vector<Service> services();
     std::map<uint16_t, ByteStrArray> manufacturer_data();
 
     ByteStrArray read(BluetoothUUID const& service, BluetoothUUID const& characteristic);
@@ -50,6 +52,18 @@ class Peripheral {
     void indicate(BluetoothUUID const& service, BluetoothUUID const& characteristic,
                   std::function<void(ByteArray payload)> callback);
     void unsubscribe(BluetoothUUID const& service, BluetoothUUID const& characteristic);
+
+    ByteStrArray read(BluetoothUUID const& service, BluetoothUUID const& characteristic,
+                      BluetoothUUID const& descriptor);
+    ByteArray readBytes(BluetoothUUID const& service, BluetoothUUID const& characteristic,
+                        BluetoothUUID const& descriptor);
+
+    void write(BluetoothUUID const& service, BluetoothUUID const& characteristic, BluetoothUUID const& descriptor,
+               ByteStrArray const& data);
+    void write(BluetoothUUID const& service, BluetoothUUID const& characteristic, BluetoothUUID const& descriptor,
+               ByteArray const& data);
+
+    // clang-format on
 
     void set_callback_on_connected(std::function<void()> on_connected);
     void set_callback_on_disconnected(std::function<void()> on_disconnected);
