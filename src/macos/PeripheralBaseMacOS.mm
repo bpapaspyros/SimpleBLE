@@ -9,6 +9,12 @@
 typedef struct {
     BOOL readPending;
     BOOL writePending;
+} descriptor_extras_t;
+
+typedef struct {
+    BOOL readPending;
+    BOOL writePending;
+    std::map<std::string, descriptor_extras_t> descriptor_extras;
     std::function<void(SimpleBLE::ByteStrArray)> valueChangedCallback;
     std::function<void(SimpleBLE::ByteArray)> valueChangedCallbackBytes;
 } characteristic_extras_t;
@@ -397,9 +403,9 @@ typedef struct {
     }
 }
 
-- (SimpleBLE::ByteArray)read:(NSString*)service_uuid
-         characteristic_uuid:(NSString*)characteristic_uuid
-             descriptor_uuid:(NSString*)descriptor_uuid {
+- (SimpleBLE::ByteStrArray)read:(NSString*)service_uuid
+            characteristic_uuid:(NSString*)characteristic_uuid
+                descriptor_uuid:(NSString*)descriptor_uuid {
     std::pair<CBService*, CBCharacteristic*> serviceAndCharacteristic = [self findServiceAndCharacteristic:service_uuid
                                                                                        characteristic_uuid:characteristic_uuid];
 
@@ -431,7 +437,44 @@ typedef struct {
 
     const char* bytes = (const char*)[descriptor.value bytes];
 
-    return SimpleBLE::ByteArray(bytes, [descriptor.value length]);
+    return SimpleBLE::ByteStrArray(bytes, [descriptor.value length]);
+}
+
+- (SimpleBLE::ByteArray)readBytes:(NSString*)service_uuid
+              characteristic_uuid:(NSString*)characteristic_uuid
+                  descriptor_uuid:(NSString*)descriptor_uuid {
+    std::pair<CBService*, CBCharacteristic*> serviceAndCharacteristic = [self findServiceAndCharacteristic:service_uuid
+                                                                                       characteristic_uuid:characteristic_uuid];
+
+    CBCharacteristic* characteristic = serviceAndCharacteristic.second;
+
+    CBDescriptor* descriptor = [self findDescriptor:descriptor_uuid characteristic:characteristic];
+
+    @synchronized(self) {
+        characteristic_extras_[uuidToSimpleBLE(characteristic.UUID)].descriptor_extras[uuidToSimpleBLE(descriptor.UUID)].readPending = YES;
+        [self.peripheral readValueForDescriptor:descriptor];
+    }
+
+    // Wait for the read to complete for up to 1 second.
+    NSDate* endDate = [NSDate dateWithTimeInterval:1.0 sinceDate:NSDate.now];
+    BOOL readPending = YES;
+    while (readPending && [NSDate.now compare:endDate] == NSOrderedAscending) {
+        [NSThread sleepForTimeInterval:0.01];
+        @synchronized(self) {
+            readPending = characteristic_extras_[uuidToSimpleBLE(characteristic.UUID)]
+                              .descriptor_extras[uuidToSimpleBLE(descriptor.UUID)]
+                              .readPending;
+        }
+    }
+
+    if (readPending) {
+        NSLog(@"Descriptor %@ could not be read", descriptor.UUID);
+        throw SimpleBLE::Exception::OperationFailed();
+    }
+
+    SimpleBLE::ByteArray r([descriptor.value length]);
+    std::copy((uint8_t*)[descriptor.value bytes], (uint8_t*)[descriptor.value bytes] + [descriptor.value length], r.begin());
+    return r;
 }
 
 - (void)write:(NSString*)service_uuid

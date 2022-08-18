@@ -30,7 +30,7 @@ class PeripheralBase {
     bool is_paired();
     void unpair();
 
-    std::vector<BluetoothService> services();
+    std::vector<Service> services();
     std::map<uint16_t, ByteStrArray> manufacturer_data();
 
     ByteStrArray read(BluetoothUUID const& service, BluetoothUUID const& characteristic);
@@ -49,9 +49,16 @@ class PeripheralBase {
                   std::function<void(ByteArray payload)> callback);
     void unsubscribe(BluetoothUUID const& service, BluetoothUUID const& characteristic);
 
-    ByteArray read(BluetoothUUID const& service, BluetoothUUID const& characteristic, BluetoothUUID const& descriptor);
+    ByteStrArray read(BluetoothUUID const& service, BluetoothUUID const& characteristic,
+                      BluetoothUUID const& descriptor);
+    ByteArray readBytes(BluetoothUUID const& service, BluetoothUUID const& characteristic,
+                        BluetoothUUID const& descriptor);
+
     void write(BluetoothUUID const& service, BluetoothUUID const& characteristic, BluetoothUUID const& descriptor,
                ByteArray const& data);
+    void write(BluetoothUUID const& service, BluetoothUUID const& characteristic, BluetoothUUID const& descriptor,
+               ByteStrArray const& data);
+
     // clang-format on
 
     void set_callback_on_connected(std::function<void()> on_connected);
